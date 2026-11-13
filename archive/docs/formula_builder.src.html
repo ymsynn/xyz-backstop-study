@@ -1,0 +1,387 @@
+<title>xyz Protocol Formula Builder</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,500;0,600;1,500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<style>
+/* Layout: one reading column. A formula sheet (relayer, Hyperliquid, liquidation, vault) on top; each modifiable term is a
+   chip that opens its propositions in place; the results ledger for the chosen combination sits below. */
+:root {
+  --paper: #f6f7f9; --sheet: #ffffff; --ink: #1b2330; --muted: #5d6777; --rule: #dde2ea;
+  --accent: #2b4c9b; --chg: #ffe2b0; --chg-ink: #6b3d00; --chip: #eef2fa;
+  --good: #1d7a4a; --bad: #b3362e; --warn: #9a6400; --pend: #2e66b8;
+  --f-display: "Spectral", "Iowan Old Style", Georgia, serif;
+  --f-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --paper: #11151c; --sheet: #171c25; --ink: #e6e9ef; --muted: #9aa3b2; --rule: #2a3140;
+  --accent: #8fb0ff; --chg: #5a4114; --chg-ink: #ffd99a; --chip: #212a3a;
+  --good: #57c48a; --bad: #f08a80; --warn: #e3b04f; --pend: #7fb0ff; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --paper: #11151c; --sheet: #171c25; --ink: #e6e9ef; --muted: #9aa3b2; --rule: #2a3140;
+  --accent: #8fb0ff; --chg: #5a4114; --chg-ink: #ffd99a; --chip: #212a3a;
+  --good: #57c48a; --bad: #f08a80; --warn: #e3b04f; --pend: #7fb0ff; color-scheme: dark }
+body { background: var(--paper); color: var(--ink); font: 15px/1.5 var(--f-body); }
+.wrap { max-width: 980px; margin: 0 auto; padding-block: 28px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1 { font: 600 clamp(26px, 4vw, 34px)/1.15 var(--f-display); margin: 0 0 6px; text-wrap: balance; }
+h2 { font: 600 21px/1.25 var(--f-display); margin: 0; text-wrap: balance; }
+.lede { color: var(--muted); max-width: 70ch; margin: 0 0 18px; }
+.bar { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; margin: 0 0 22px; }
+.bar label { font-size: 13px; color: var(--muted); }
+select { font: 14px var(--f-body); padding: 6px 8px; border: 1px solid var(--rule); border-radius: 6px; background: var(--sheet); color: var(--ink); max-width: 100%; }
+.btn { font: 500 13px var(--f-body); border: 1px solid var(--rule); background: var(--sheet); color: var(--ink); border-radius: 6px; padding: 6px 10px; cursor: pointer; }
+.btn:hover { border-color: var(--accent); }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12.5px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.sw { width: 14px; height: 14px; border-radius: 3px; display: inline-block; }
+.sheet { background: var(--sheet); border: 1px solid var(--rule); border-radius: 10px; padding: 18px 20px; display: grid; gap: 22px; }
+.block { display: grid; gap: 8px; min-width: 0; }
+.block-h { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; border-bottom: 1px solid var(--rule); padding-bottom: 6px; }
+.who { font: 500 11px var(--f-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.eq { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; font-size: 18px; min-width: 0; overflow-x: auto; padding: 2px 0; }
+.eq .no { margin-left: auto; color: var(--muted); font: 12px var(--f-mono); }
+.eq math { font-size: 1.05em; }
+.chip { font: inherit; display: inline-flex; align-items: center; gap: 4px; border: 1px dashed var(--accent); background: var(--chip); color: var(--ink);
+  border-radius: 6px; padding: 2px 6px; cursor: pointer; max-width: 100%; text-align: left; }
+.chip:hover, .chip[aria-expanded="true"] { border-style: solid; }
+.chip.changed { background: var(--chg); color: var(--chg-ink); border-color: var(--chg-ink); }
+.chip:focus-visible, .opt:focus-visible, .btn:focus-visible, select:focus-visible, .near button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.prose { font-size: 13.5px; color: var(--muted); max-width: 75ch; }
+.fixed { font-size: 12px; color: var(--muted); }
+.tray { border: 1px solid var(--rule); border-radius: 8px; padding: 10px; display: grid; gap: 6px; background: var(--paper); }
+.tray-h { font-size: 13px; color: var(--muted); }
+.opt { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; text-align: left; font: inherit; color: var(--ink); background: var(--sheet);
+  border: 1px solid var(--rule); border-radius: 6px; padding: 8px 10px; cursor: pointer; }
+.opt[aria-checked="true"] { border-color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
+.opt .t { font-weight: 600; font-size: 14px; }
+.opt .d { grid-column: 1 / -1; font-size: 13px; color: var(--muted); }
+.opt .m { grid-column: 1 / -1; font-size: 16px; overflow-x: auto; }
+.pill { font: 500 11px var(--f-mono); letter-spacing: .04em; text-transform: uppercase; padding: 1px 7px; border-radius: 99px; border: 1px solid currentColor; white-space: nowrap; align-self: start; }
+.st-today { color: var(--muted); } .st-lead { color: var(--good); } .st-rejected { color: var(--bad); }
+.st-superseded { color: var(--muted); } .st-running { color: var(--pend); } .st-tested { color: var(--warn); }
+.results { margin-top: 30px; display: grid; gap: 14px; }
+.match { background: var(--sheet); border: 1px solid var(--rule); border-radius: 10px; padding: 14px 16px; display: grid; gap: 8px; }
+.match strong { font-family: var(--f-display); font-size: 18px; }
+.near { display: flex; flex-wrap: wrap; gap: 8px; }
+.near button { font: 13px var(--f-body); border: 1px solid var(--rule); background: var(--paper); color: var(--ink); border-radius: 6px; padding: 6px 9px; cursor: pointer; text-align: left; }
+.near button span { color: var(--muted); display: block; font-size: 12px; }
+.tablewrap { overflow-x: auto; background: var(--sheet); border: 1px solid var(--rule); border-radius: 10px; }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; font-variant-numeric: tabular-nums; }
+th, td { padding: 7px 12px; border-bottom: 1px solid var(--rule); text-align: right; vertical-align: top; }
+th:first-child, td:first-child { text-align: left; }
+thead th { font: 500 11.5px var(--f-mono); letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+tr.grp td { font: 600 15px var(--f-display); text-align: left; background: var(--paper); }
+td.na { color: var(--muted); }
+td .src { display: block; font: 11px var(--f-mono); color: var(--muted); }
+td.good { color: var(--good); font-weight: 600; } td.bad { color: var(--bad); font-weight: 600; }
+.foot { font-size: 12.5px; color: var(--muted); max-width: 80ch; }
+@media (max-width: 560px) { .eq { font-size: 16px; } .sheet { padding: 14px; } th, td { padding: 6px 8px; } }
+@media (prefers-reduced-motion: no-preference) { .tray { animation: in .14s ease-out; } @keyframes in { from { opacity: .4; transform: translateY(-3px); } to { opacity: 1; transform: none; } } }
+</style>
+
+<div class="wrap">
+  <h1>xyz protocol formula builder</h1>
+  <p class="lede">The mark price, liquidation and backstop rules of trade.xyz's dex on Hyperliquid, written out in full. Every highlighted term can be changed: click it, pick a proposition, and every formula that uses it updates. The ledger at the bottom shows the results of the combination, measured on replays of real events, or the nearest tested combination when this exact one has not been run.</p>
+  <div class="bar">
+    <label for="preset">Start from a tested combination</label>
+    <select id="preset"></select>
+    <button class="btn" id="reset" type="button">Reset to today</button>
+    <div class="legend"><span><i class="sw" style="background:var(--chip);border:1px dashed var(--accent)"></i>today's rule (click to change)</span><span><i class="sw" style="background:var(--chg)"></i>changed from today</span></div>
+  </div>
+  <div class="sheet" id="sheet"></div>
+  <section class="results" aria-live="polite">
+    <h2>Results of this combination</h2>
+    <div class="match" id="match"></div>
+    <div class="tablewrap"><table id="tbl"><thead><tr><th>Scenario</th><th>Reference</th><th>This combination</th><th>Change</th></tr></thead><tbody></tbody></table></div>
+    <p class="foot">Each result is compared with the reference run of the same test (today's rules unless the cell says otherwise), so different rows may come from different engine versions. Crash rows sum GOOGL 10-28, INTC and AMZN 10-29. Attack rows give the worst case over the attacker sizes and durations tested. Vault PnL is never shown: the vault's unwind into a replayed book cannot be tested. Source of every number: the test named under it, in docs/registry.json.</p>
+  </section>
+</div>
+
+<script>
+const DATA = /*DATA*/null;
+const T = String.raw;
+// status: today | lead | superseded | rejected | running | tested;  who: relayer | Hyperliquid
+const SLOTS = {
+  c: { title: "Relayer per-update clamp c", opts: [
+    { id: "c50", tex: T`c = 50\,\text{bp}`, label: "50 bp", status: "today", who: "relayer", desc: "Each published price may move at most 0.5% per update (about 3 s)." },
+    { id: "c200", tex: T`c = 200\,\text{bp}`, label: "200 bp", status: "superseded", who: "relayer", desc: "A wider clamp. Scored like P1 with one more constant." } ] },
+  O: { title: "Oracle, external session", opts: [
+    { id: "O_today", tex: T`\mathcal{D}_t\big(\operatorname{clip}(E_t,\ O_{t-k}(1\pm c))\big)`, label: "Follows E, clamped", status: "today", who: "relayer", desc: "The oracle moves toward the external price by at most c per update, from the value the relayer last saw on-chain (lag k)." },
+    { id: "O_E", tex: T`\mathcal{D}_t(E_t)`, label: "Follows E at once", status: "lead", who: "relayer", desc: "No per-update clamp: the oracle is the external price, inside the discovery bound." } ] },
+  X1: { title: "First mark price X¹", opts: [
+    { id: "X1_today", tex: T`\mathcal{D}_t\big(\operatorname{clip}(O_t,\ M_{t-1}(1\pm c))\big)`, label: "Oracle, clamped around the last mark", status: "today", who: "relayer", desc: "Found on the tape (11-08): binds when xyz's book sits more than c from E, as on oil all day, so the book drags this price too." },
+    { id: "X1_O", tex: T`O_t`, label: "The oracle itself", status: "lead", who: "relayer", desc: "Not dragged by the mark. With an unclamped oracle this is the external price." },
+    { id: "X1_band", tex: T`C_t - w`, label: "Lower edge of a band", status: "superseded", who: "relayer", desc: "External-anchored band: the book picks the mark inside [C − w, C + w]." },
+    { id: "X1_imp", tex: T`\overline{I}^{\,\$100\text{k}}_t`, label: "Own book A: impact mid", status: "rejected", who: "relayer", desc: "Time-averaged impact mid at $100k. The mark from xyz alone." },
+    { id: "X1_impB", tex: T`\overline{I}^{\,\$100\text{k}}_t\ \text{(steps cross} \le \$1\text{M of liq. prices)}`, label: "Own book B", status: "rejected", who: "relayer", desc: "A, but a step may cross at most $1M of liquidation prices." },
+    { id: "X1_impC", tex: T`I_t\ \text{once } E \text{ confirms, else } \overline{I}_t`, label: "Own book C", status: "superseded", who: "relayer", desc: "A, with both inputs jumping to the instantaneous impact mid once E confirms the move." } ] },
+  X2: { title: "Second mark price X²", opts: [
+    { id: "X2_today", tex: T`\mathcal{D}_t\big(\operatorname{clip}(E_t+e_t,\ \operatorname{hull}[O_{t-k}(1\pm c),\,X^2_{t-k}(1\pm c)])\big)`, label: "E + book premium, clamped", status: "today", who: "relayer", desc: "The external price plus a 150 s average of the book's premium; each step may walk c from its own last value, so a push can walk it to the bound." },
+    { id: "X2_free", tex: T`\mathcal{D}_t(E_t+e_t)`, label: "E + premium, unclamped", status: "superseded", who: "relayer", desc: "P1: the same price without the clamp." },
+    { id: "X2_anchE", tex: T`\mathcal{D}_t\big(\operatorname{clip}(E_t+e_t,\ E_t(1\pm c))\big)`, label: "E + premium, kept within c of E", status: "lead", who: "relayer", desc: "The book can pull this price at most c away from the current external price, whatever it does." },
+    { id: "X2_anchO", tex: T`\mathcal{D}_t\big(\operatorname{clip}(E_t+e_t,\ O_{t-k}(1\pm c))\big)`, label: "E + premium, within c of the lagged oracle", status: "superseded", who: "relayer", desc: "Anchored on the oracle the relayer last saw: a faithful wash still lifted the mark 197 bp." },
+    { id: "X2_P", tex: T`\mathcal{D}_t(P_t)`, label: "xyz's voluntary trades", status: "superseded", who: "relayer", desc: "P2: the median of recent voluntary xyz trades. A pushed book alone cannot move it." },
+    { id: "X2_Pema", tex: T`\mathcal{D}_t\big(\operatorname{EMA}_{150\,\text{s}}(P)\big)`, label: "Trades, averaged 150 s", status: "rejected", who: "relayer", desc: "Slows the honest case; wash trades still open a hold." },
+    { id: "X2_Pema_raw", tex: T`\mathcal{D}_t\big(\operatorname{EMA}_{150\,\text{s}}(P)\big),\ P_t \text{ in a hold}`, label: "Trades averaged, raw in a hold", status: "rejected", who: "relayer", desc: "As above, with the raw trade price during a hold." },
+    { id: "X2_E", tex: T`E_t`, label: "External price", status: "superseded", who: "relayer", desc: "Reference: the mark is the external price." },
+    { id: "X2_band", tex: T`C_t + w`, label: "Upper edge of a band", status: "superseded", who: "relayer", desc: "External-anchored band (with X¹ = C − w)." },
+    { id: "X2_bin", tex: T`\text{Binance}_t`, label: "Binance price", status: "rejected", who: "relayer", desc: "Rejected on principle: a competitor's price never enters the mark." },
+    { id: "X2_vwap", tex: T`\text{VWAP}_{10\,\text{s}}`, label: "Own book: 10 s trade VWAP", status: "rejected", who: "relayer", desc: "Own book A/B/C's second input." } ] },
+  V: { title: "Trade window for P", opts: [
+    { id: "V_self30", tex: T`V_t = \max(\text{vol}_{30\,\text{s}},\ \overline{\text{vol}}_{30\,\text{s}})`, label: "Self-calibrated, 30 s", status: "lead", who: "relayer", desc: "The latest trades worth the larger of the last 30 s of volume or the day's average 30 s (30 s is Hyperliquid's partial-liquidation cooldown)." },
+    { id: "V_1m60", tex: T`V_t = \$1\text{M over } 60\,\text{s}`, label: "Fixed $1M", status: "superseded", who: "relayer", desc: "Let 5 × $500k move the mark 36 bp." },
+    { id: "V_floor250", tex: T`V_t = \max(\$250\text{k},\ \text{vol}_{60\,\text{s}})`, label: "$250k floor", status: "superseded", who: "relayer", desc: "A dollar constant; same scores." },
+    { id: "V_self60", tex: T`V_t = \max(\text{vol}_{60\,\text{s}},\ \overline{\text{vol}}_{60\,\text{s}})`, label: "Self-calibrated, 60 s", status: "superseded", who: "relayer", desc: "Same scores as 30 s." } ] },
+  R: { title: "Centre of the discovery bound", opts: [
+    { id: "R_E", tex: T`E_t`, label: "The external price", status: "today", who: "relayer", desc: "The bound follows E, including a bad print." },
+    { id: "R_med10", tex: T`\operatorname{med}(E_{t-9},\dots,E_t)`, label: "P3: median of 10 updates", status: "superseded", who: "relayer", desc: "One short bad print cannot move the centre; a long one still passes." },
+    { id: "R_med20", tex: T`\operatorname{med}(E_{t-19},\dots,E_t)`, label: "P3: median of 20 updates", status: "superseded", who: "relayer", desc: "Blocks prints shorter than about 30 s." },
+    { id: "R_p4", tex: T`\begin{cases}E_t & |E_t-P_t|\le dE_t\\ R_{t-1} & \text{otherwise (hold)}\end{cases}`, label: "P4: hold when trades disagree", status: "superseded", who: "relayer", desc: "Wash trades alone could freeze it (+444 bp)." },
+    { id: "R_p4b", tex: T`R_{t-1}\ \text{if } |E_t-P_t|>dE_t \wedge |E_t-I_t|>dE_t,\ \text{else } E_t`, label: "P4b: trades and book must disagree", status: "superseded", who: "relayer", desc: "I_t: book impact mid at 6,000 USDC (Hyperliquid's funding impact notional)." },
+    { id: "R_p4c", tex: T`\text{P4b, hold} \le 150\,\text{s}`, label: "P4c: hold expires", status: "rejected", who: "relayer", desc: "A long bad print passes all at once on expiry." },
+    { id: "R_p4d", tex: T`\text{P4b; a held } R \text{ steps toward } E \text{ (rule below)}`, label: "P4d: hold steps toward E", status: "lead", who: "relayer", desc: "No hold lasts forever; a −20% print for 5 min moves the mark 32 bp." },
+    { id: "R_p4d_cap", tex: T`\text{P4d; edge away from } E \text{ kept at } R_0`, label: "P4d + hold cap", status: "rejected", who: "relayer", desc: "No gain in any test." } ] },
+  H: { title: "When xyz's own price takes over", opts: [
+    { id: "H_na", tex: T`\text{no holds}`, label: "Never", status: "today", who: "relayer", desc: "Today: the published prices always follow E." },
+    { id: "H_always", tex: T`\text{whenever the bound rule holds}`, label: "Always (P4 family)", status: "superseded", who: "relayer", desc: "The published prices are D_R(E) and D_R(P) at every update." },
+    { id: "H_trig30", tex: T`\text{only after } E \text{ jumped} > d \text{ within } 30\,\text{s or froze } 30\,\text{s}`, label: "After a feed failure (30 s)", status: "superseded", who: "relayer", desc: "Faithful wash: the attackers' prints open a hold (+663 bp)." },
+    { id: "H_step", tex: T`\text{only after a one-update jump} > d \text{ or a } 30\,\text{s freeze}`, label: "After a one-update jump", status: "rejected", who: "relayer", desc: "Lower peak under the faithful wall, but more accounts liquidated." },
+    { id: "H_z", tex: T`\text{feed failure only; today's prices otherwise}`, label: "Today's prices outside failures", status: "superseded", who: "relayer", desc: "Outside a hold the relayer publishes today's prices with the oracle unclamped; P4d's inputs only during a hold." },
+    { id: "H_y", tex: T`\ldots\ \text{frozen} = 2 \text{ unchanged updates}`, label: "+ quicker freeze detection", status: "superseded", who: "relayer", desc: "A stuck feed is detected after two unchanged updates." },
+    { id: "H_w", tex: T`\ldots\ \text{a frozen feed holds once xyz disagrees} > c`, label: "+ frozen feed holds at c", status: "superseded", who: "relayer", desc: "" },
+    { id: "H_v", tex: T`\ldots\ \text{a one-update jump holds once xyz disagrees} > c`, label: "+ jump holds at c (package_v)", status: "superseded", who: "relayer", desc: "Out of sample it read CME's daily close as a frozen feed: 91 CL and 79 Brent shorts liquidated by a natural wick." },
+    { id: "H_k", tex: T`\ldots\ \text{never on a quiet feed inside a scheduled closure}`, label: "+ closures are not failures (package_k)", status: "lead", who: "relayer", desc: "A feed that goes quiet because its market is closed is not treated as broken (venue calendar)." } ] },
+  DV: { title: "Divergence trigger", opts: [
+    { id: "DV_none", tex: T`\text{none}`, label: "None", status: "lead", who: "relayer", desc: "Only a one-update jump or a frozen feed starts a hold, so a feed walked slowly away is followed all the way." },
+    { id: "DV_500", tex: T`|E_t-P_t| > d\,E_t \ \wedge\ |E_t-I_t| > d\,E_t`, label: "At d (5% at 20x)", status: "rejected", who: "relayer", desc: "Too late: a walk reaches 20x accounts' maintenance margin first ($0.70M taken over on a 30 s walk)." },
+    { id: "DV_250", tex: T`|E_t-P_t| > \tfrac{d}{2}\,E_t \ \wedge\ |E_t-I_t| > \tfrac{d}{2}\,E_t`, label: "At the MM rate (2.5% at 20x)", status: "rejected", who: "relayer", desc: "Stops a walking external feed, but hands the mark to whoever pushes xyz instead: a faithful wash at +6% lifted it 1,443 bp and hurt 72 accounts (core package: +50 bp)." } ] },
+  ST: { title: "When a hold moves toward E", opts: [
+    { id: "ST_150", tex: T`R \leftarrow R + \operatorname{clip}(E-R,\pm dR)\ \text{every } 150\,\text{s}`, label: "One band every 150 s", status: "lead", who: "relayer", desc: "So no hold lasts forever; but a feed walked for 5 min gets through in steps." },
+    { id: "ST_stale", tex: T`\text{step only while xyz has no trades; else hold until xyz agrees with } E`, label: "Only while xyz's price is stale", status: "rejected", who: "relayer", desc: "Tested with the divergence trigger, which was rejected. Staleness by trade count can be kept alive with dust trades; by volume it cannot." } ] },
+  FZ: { title: "When E freezes during open hours", opts: [
+    { id: "FZ_na", tex: T`\text{the formulas above, with the frozen } E`, label: "Nothing special", status: "today", who: "relayer", desc: "Today: the mark stays anchored to a frozen E (overnight, E is frozen over 30 min on a third of US coin-days)." },
+    { id: "FZ_hold", tex: T`\text{xyz-led hold (frozen feed starts a hold)}`, label: "xyz's price takes over", status: "superseded", who: "relayer", desc: "package_k: fast in a crash under a frozen feed, but a wash at +6% lifts the mark 481 bp (20 accounts) while E is frozen." },
+    { id: "FZ_int", tex: T`E \text{ unchanged 2 updates} \Rightarrow O_t = \text{the closed-market oracle}`, label: "Priced like a closed market", status: "lead", who: "relayer", desc: "B: one rule whenever E is not live. Stale-E attacks +50 bp / 0 accounts; a crash exactly under a frozen feed is followed late (−$424k vs −$383k today)." },
+    { id: "FZ_deep", tex: T`\text{xyz-led hold, book checked at depth } V_t`, label: "Hold with a deeper book check", status: "rejected", who: "relayer", desc: "C: closes the stale-E wash, not the stale-E prop attack (+484 bp, 19 accounts)." } ] },
+  Q: { title: "Oracle while the market is closed", opts: [
+    { id: "Q_int", tex: T`O_{t-1} + \big(1-e^{-\Delta t^*/\tau}\big)(\text{mid}_t - O_{t-1})`, label: "Internal oracle (book average)", status: "today", who: "relayer", desc: "trade.xyz's internal oracle, τ = 30 min, Δt* = min(Δt, τ/10). Runs in CME's daily break, weekends and the Korean night. A sustained push drags it." },
+    { id: "Q_holdDaily", tex: T`E_{\text{close}}\ \text{in daily breaks; internal on weekends}`, label: "Hold the close in daily breaks", status: "rejected", who: "relayer", desc: "Rejected: every closed market must follow the same rule." },
+    { id: "Q_cap050", tex: T`O_{t-1} + \big(1-e^{-\Delta t^*/\tau}\big)\operatorname{clip}(\text{mid}_t - O_{t-1},\ \pm 0.5\%\,O_{t-1})`, label: "Capped at 0.5%", status: "running", who: "relayer", desc: "trade.xyz's own clamp as the cap. Push bound ≈ 25 bp per 15 min; lags genuine large moves (SKHX 582 bp at reopen)." },
+    { id: "Q_cap100", tex: T`O_{t-1} + \big(1-e^{-\Delta t^*/\tau}\big)\operatorname{clip}(\text{mid}_t - O_{t-1},\ \pm 1\%\,O_{t-1})`, label: "Capped at 1%", status: "running", who: "relayer", desc: "Hyperliquid's per-update mark cap as the cap. Push bound ≈ 50 bp per 15 min; SKHX 189 bp at reopen." },
+    { id: "Q_cap200", tex: T`O_{t-1} + \big(1-e^{-\Delta t^*/\tau}\big)\operatorname{clip}(\text{mid}_t - O_{t-1},\ \pm 2\%\,O_{t-1})`, label: "Capped at 2%", status: "running", who: "relayer", desc: "Push bound ≈ 100 bp per 15 min; tracks every genuine move like today." } ] },
+  L: { title: "Liquidation size", opts: [
+    { id: "L_today", tex: T`20\%\ \text{per round},\ 30\,\text{s apart (positions} > \$100\text{k)}`, label: "20% every 30 s", status: "today", who: "Hyperliquid", desc: "Smaller positions close in full." },
+    { id: "L_cd10", tex: T`20\%\ \text{per round},\ 10\,\text{s apart}`, label: "10 s cooldown", status: "rejected", who: "Hyperliquid", desc: "No change." },
+    { id: "L_cd3", tex: T`20\%\ \text{per round},\ 3\,\text{s apart}`, label: "3 s cooldown", status: "rejected", who: "Hyperliquid", desc: "" },
+    { id: "L_full", tex: T`\text{whole position at once}`, label: "Full liquidation", status: "rejected", who: "Hyperliquid", desc: "Reference." },
+    { id: "L_rMMall", tex: T`\text{sell to restore MM (all sizes)}`, label: "Restore to MM", status: "rejected", who: "Hyperliquid", desc: "Leaves accounts at the edge: more inherited." },
+    { id: "L_r15", tex: T`\text{sell to restore } 1.5\,\text{MM (} > \$100\text{k)}`, label: "Restore to 1.5 MM", status: "rejected", who: "Hyperliquid", desc: "" },
+    { id: "L_rIM", tex: T`\text{sell to restore IM each update (} > \$100\text{k)}`, label: "Restore to IM", status: "lead", who: "Hyperliquid", desc: "In the core package: sells just enough to put a large position back at initial margin, every mark update." },
+    { id: "L_r3", tex: T`\text{sell to restore } 3\,\text{MM (} > \$100\text{k)}`, label: "Restore to 3 MM", status: "rejected", who: "Hyperliquid", desc: "" },
+    { id: "L_rIMall", tex: T`\text{sell to restore IM (all sizes)}`, label: "Restore to IM, all sizes", status: "rejected", who: "Hyperliquid", desc: "More takeovers underwater." },
+    { id: "L_rIMdyn", tex: T`\text{restore IM} + \text{speed-triggered buffer}`, label: "Restore to IM + buffer", status: "rejected", who: "Hyperliquid", desc: "" } ] },
+  BS: { title: "Backstop takeover threshold", opts: [
+    { id: "BS_23", tex: T`\tfrac23\,\text{MM}`, label: "⅔ MM", status: "today", who: "Hyperliquid", desc: "Below it the vault takes the position at the bankruptcy price." },
+    { id: "BS_12", tex: T`\tfrac12\,\text{MM}`, label: "½ MM", status: "rejected", who: "Hyperliquid", desc: "Less inherited only by leaving less margin to cover the gap." },
+    { id: "BS_13", tex: T`\tfrac13\,\text{MM}`, label: "⅓ MM", status: "rejected", who: "Hyperliquid", desc: "" } ] },
+  MM: { title: "Maintenance margin", opts: [
+    { id: "MM_12", tex: T`\tfrac12\,\text{IM}`, label: "½ IM", status: "today", who: "Hyperliquid", desc: "Fixed protocol-wide; the deployer sets only the margin tables." },
+    { id: "MM_34", tex: T`\tfrac34\,\text{IM (takeover at } \tfrac23 \text{ of it)}`, label: "¾ IM", status: "rejected", who: "Hyperliquid", desc: "Moves losses to traders as 1.5–2.3× more forced liquidation." },
+    { id: "MM_34k", tex: T`\tfrac34\,\text{IM, takeover kept at } \tfrac13\,\text{IM}`, label: "¾ IM, takeover kept", status: "rejected", who: "Hyperliquid", desc: "" },
+    { id: "MM_dyn", tex: T`\tfrac12 \to \tfrac34\,\text{IM with the feed's speed}`, label: "½→¾ with feed speed", status: "rejected", who: "Hyperliquid", desc: "" } ] },
+  LV: { title: "Max leverage", opts: [
+    { id: "LV_today", tex: T`\text{maxLev per asset}`, label: "Per asset", status: "today", who: "relayer", desc: "Margin tables set by the deployer." },
+    { id: "LV_t1", tex: T`20\times \to 10\times\ \text{above } \$1\text{M}`, label: "Size tiers T1", status: "rejected", who: "relayer", desc: "Bypassed by splitting across wallets." },
+    { id: "LV_t1_reduce", tex: T`\text{T1, traders reduce size}`, label: "T1, traders reduce", status: "rejected", who: "relayer", desc: "" },
+    { id: "LV_t3", tex: T`10\times > \$500\text{k},\ 5\times > \$2\text{M}`, label: "Size tiers T3", status: "rejected", who: "relayer", desc: "" },
+    { id: "LV_o1lock", tex: T`L/2 > 5\%\ \text{of OI},\ L/4 > 15\%\ \text{(locked)}`, label: "OI-share tiers, locked", status: "rejected", who: "Hyperliquid", desc: "" },
+    { id: "LV_o1daily", tex: T`L/2 > 5\%,\ L/4 > 15\%\ \text{of the morning's OI}`, label: "OI-share tiers, daily", status: "rejected", who: "relayer", desc: "" },
+    { id: "LV_cluster", tex: T`\text{tier of the liquidation cluster } (k = 2\%)`, label: "Cluster rule", status: "rejected", who: "Hyperliquid", desc: "Unfair: one trader's margin depends on others' positions." },
+    { id: "LV_cut2", tex: T`\times\tfrac12\ \text{around earnings}`, label: "Earnings cut ½", status: "rejected", who: "relayer", desc: "Singles out the moments traders care about most." },
+    { id: "LV_cut2w5", tex: T`\times\tfrac12\ \text{around earnings (5 min notice)}`, label: "Earnings cut ½, 5 min", status: "rejected", who: "relayer", desc: "" },
+    { id: "LV_cut4", tex: T`\times\tfrac14\ \text{around earnings}`, label: "Earnings cut ¼", status: "rejected", who: "relayer", desc: "" },
+    { id: "LV_o1daily_cut2", tex: T`\text{daily OI tiers} + \times\tfrac12\ \text{around earnings}`, label: "Daily OI tiers + cut ½", status: "rejected", who: "relayer", desc: "" } ] },
+  U: { title: "Vault unwind (appendix)", opts: [
+    { id: "U_05", tex: T`0.5\%\ \text{of inventory per update}`, label: "0.5% clip", status: "today", who: "Hyperliquid", desc: "As modelled; trade.xyz's real policy is not published. Not part of the protection package." },
+    { id: "U_5", tex: T`5\%\ \text{of inventory per update}`, label: "5% clip", status: "rejected", who: "Hyperliquid", desc: "Sells into the gap." },
+    { id: "U_fair", tex: T`0.5\% + \text{every bid} \ge O_t`, label: "Fair sweep", status: "superseded", who: "Hyperliquid", desc: "Appendix only." } ] },
+};
+const TODAY = Object.fromEntries(Object.entries(SLOTS).map(([k, s]) => [k, s.opts[0].id]));
+const usesP = s => ["X2_P", "X2_Pema", "X2_Pema_raw"].includes(s.X2) || s.R.startsWith("R_p4");
+const hasHold = s => s.R.startsWith("R_p4");
+// formula sheet: blocks of lines; a line is a list of [tex] / {slot} parts, with an optional condition
+const BLOCKS = [
+  { h: "Relayer, external session", who: "trade.xyz", lines: [
+    { parts: [T`O_t =`, { slot: "O" }] },
+    { parts: [T`X^1_t =`, { slot: "X1" }] },
+    { parts: [T`X^2_t =`, { slot: "X2" }] },
+    { parts: [{ slot: "c" }, T`\qquad d = 1/\text{maxLev}`] },
+    { parts: [T`e_t = \operatorname{EMA}_{150\,\text{s}}(\text{mid} - E)`], when: s => /X2_(today|free|anchE|anchO)/.test(s.X2) },
+    { parts: [T`C_t = E_t + \operatorname{clip}\big(\operatorname{EMA}_{1800\,\text{s}}(\text{mid}-E),\ \pm 50\,\text{bp}\big),\quad w = 25\,\text{bp}`], when: s => s.X1 === "X1_band" || s.X2 === "X2_band" },
+    { parts: [T`P_t = \operatorname{vwmed}\{\text{voluntary xyz trades worth } V_t\},\quad`, { slot: "V" }], when: usesP },
+    { parts: [T`\mathcal{D}_t(x) = \operatorname{clip}\big(x,\ [R_t(1-d),\ R_t(1+d)]\big),\quad R_t =`, { slot: "R" }] },
+    { parts: [T`\text{xyz's price takes over:}\ `, { slot: "H" }], when: hasHold },
+    { parts: [T`\text{also at any speed when}\ `, { slot: "DV" }], when: hasHold },
+    { parts: [T`\text{a hold moves toward } E\text{:}\ `, { slot: "ST" }], when: s => s.R === "R_p4d" || s.R === "R_p4d_cap" },
+    { prose: s => hasHold(s) ? (s.H === "H_always" ? "During a hold the published prices are 𝒟_R(E) and 𝒟_R(P): xyz's trades lead and the bound stays where it was." : "Outside a hold the lines above apply; during a hold the relayer publishes 𝒟_R(E) and 𝒟_R(P) with the bound centre held.") : "" } ] },
+  { h: "Relayer, closed market", who: "trade.xyz", lines: [
+    { parts: [T`O_t =`, { slot: "Q" }] },
+    { prose: () => "Scheduled closures: CME's daily break (21:00–22:00 UTC), weekends, the Korean night (20:00–08:00 KST). US stocks' 20:00–20:05 ET gap keeps a frozen external price." },
+    { parts: [T`\text{E frozen in open hours:}\ `, { slot: "FZ" }] } ] },
+  { h: "Hyperliquid, mark price", who: "Hyperliquid · fixed", lines: [
+    { parts: [T`M_t = \operatorname{clip}\big(\operatorname{med}(X^1_t,\ X^2_t,\ B_t),\ M_{t-1}(1\pm 1\%)\big),\qquad B_t = \operatorname{med}(\text{bid}_t, \text{ask}_t, \text{last}_t)`] },
+    { prose: () => "Not changed by any proposition. With the relayer silent for 10 s, M = B." } ] },
+  { h: "Liquidation and backstop", who: "Hyperliquid", lines: [
+    { parts: [T`\text{equity} < \text{MM}:\ `, { slot: "L" }] },
+    { parts: [T`\text{equity} <`, { slot: "BS" }, T`\ \Rightarrow\ \text{the backstop vault takes the position at the bankruptcy price}`] },
+    { parts: [T`\text{MM} =`, { slot: "MM" }, T`\qquad \text{IM} = \text{notional}/\text{maxLev}`] },
+    { parts: [T`\text{maxLev}:\ `, { slot: "LV" }] },
+    { prose: () => "If the vault cannot cover a shortfall, the loss goes to auto-deleveraging (ADL) of profitable traders: the outcome the whole design tries to prevent." } ] },
+  { h: "Vault unwind (appendix only)", who: "Hyperliquid", lines: [
+    { parts: [T`\text{vault sells}:\ `, { slot: "U" }] } ] },
+];
+// results ledger rows: [key, label, better ("lower"|"higher"), format]
+const ROWS = [
+  ["Earnings crashes (GOOGL 10-28, INTC and AMZN 10-29)"],
+  ["crash_takeovers", "Backstop takeovers", "lower", "n"],
+  ["crash_inherited", "Notional the vault inherits", "lower", "$M"],
+  ["crash_value", "Value at takeover vs the external price", "higher", "$"],
+  ["crash_value_bin", "Value at takeover vs Binance (fair yardstick)", "higher", "$"],
+  ["crash_underwater", "Takeovers that start underwater", "lower", "n"],
+  ["topups", "Extra margin traders must post", "lower", "$M"],
+  ["Bad external prints (GOOGL and AMZN, 18:30 ET)"],
+  ["print5", "−5% for 30 s: healthy positions taken over", "lower", "$"],
+  ["print5_stops", "−5% for 30 s: stops fired", "lower", "n"],
+  ["print20", "−20% for 5 min: healthy positions taken over", "lower", "$"],
+  ["print20_googl", "−20% for 5 min, GOOGL: taken over", "lower", "$"],
+  ["print20_stops", "−20% for 5 min: stops fired", "lower", "n"],
+  ["Stuck feed (2 min at the crash onset)"],
+  ["freeze_inherited", "Notional the vault inherits", "lower", "$M"],
+  ["freeze_value", "Value at takeover vs the external price", "higher", "$"],
+  ["Attacks on xyz's book (worst case over sizes and durations)"],
+  ["push_crash", "5 × $500k buys at the crash: mark moved", "lower", "bp"],
+  ["wash", "Wash trades at +6%: mark lifted", "lower", "bp"],
+  ["wash_hurt", "Wash trades at +6%: accounts hurt", "lower", "n"],
+  ["prop", "Attacker bids +6% above mid: mark lifted", "lower", "bp"],
+  ["prop_hurt", "Attacker bids +6% above mid: accounts hurt", "lower", "n"],
+  ["wick_googl", "GOOGL, market closed: accounts hurt", "lower", "n"],
+  ["wick_cl", "CL, CME daily close: accounts hurt", "lower", "n"],
+  ["wick_cl_bp", "CL, CME daily close: mark lifted", "lower", "bp"],
+  ["wick_gold", "GOLD, weekend: accounts hurt", "lower", "n"],
+  ["wick_gold_bp", "GOLD, weekend: mark lifted", "lower", "bp"],
+  ["Manipulated external feed: E walked 10% away, held 2 min (GOOGL + AMZN)"],
+  ["walkdown15", "Down over 15 s (≈2% per update): healthy positions taken over", "lower", "$"],
+  ["walkdown60", "Down over 60 s (≈0.5% per update)", "lower", "$"],
+  ["walkdown300", "Down over 5 min (≈0.1% per update)", "lower", "$"],
+  ["walkup15", "Up over 15 s", "lower", "$"],
+  ["walkup30", "Up over 30 s", "lower", "$"],
+  ["walkup300", "Up over 5 min", "lower", "$"],
+  ["E frozen 10 min in open hours + an attacker (GOOGL 18:30 ET)"],
+  ["stale_prop", "Attacker bids +6%: accounts hurt", "lower", "n"],
+  ["stale_prop_bp", "Attacker bids +6%: mark lifted", "lower", "bp"],
+  ["stale_wash", "Wash at +6%: accounts hurt", "lower", "n"],
+  ["stale_wash_bp", "Wash at +6%: mark lifted", "lower", "bp"],
+  ["Normal markets (3 stocks, about 17 h each)"],
+  ["normal_stops", "Stops that fire only under this combination", "lower", "n"],
+  ["normal_liq", "Liquidations only under this combination", "lower", "n"],
+  ["Out of sample (7 markets never used in the design, faithful engine)"],
+  ["oos_takeovers", "Backstop takeovers", "lower", "n"],
+  ["oos_inherited", "Notional the vault inherits", "lower", "$M"],
+  ["oos_bookliq", "Accounts liquidated on the book", "lower", "n"],
+  ["oos_cadl", "Vault capital needed to avoid ADL", "lower", "$"],
+  ["ADL"],
+  ["cap_adl", "Vault capital to avoid ADL, worst crash", "lower", "% of OI"],
+  ["skhx_cadl", "SKHX 07-27, the real ADL event: vault capital to avoid ADL", "lower", "$"],
+  ["skhx", "SKHX 07-27 hand-over: positions liquidated (offline)", "lower", "n"],
+  ["Closed-market oracle screen (510 real closures, 109 markets)"],
+  ["screen_push", "Most a 15-min push moves the oracle", "lower", "bp"],
+  ["screen_reopen", "Mean gap to the price at reopen", "lower", "bp"],
+  ["screen_skhx", "SKHX 07-27 gap at reopen (genuine −9%)", "lower", "bp"],
+];
+
+let state = { ...TODAY };
+let open = null;
+const math = tex => { try { return katex.renderToString(tex, { output: "mathml", throwOnError: false }); } catch (e) { return `<code>${tex}</code>`; } };
+const optOf = (slot, id) => SLOTS[slot].opts.find(o => o.id === id);
+const pill = st => `<span class="pill st-${st}">${st}</span>`;
+
+function renderSheet() {
+  const el = document.getElementById("sheet");
+  let n = 0;
+  el.innerHTML = BLOCKS.map(b => {
+    const lines = b.lines.filter(l => !l.when || l.when(state)).map(l => {
+      if (l.prose) { const t = l.prose(state); return t ? `<p class="prose">${t}</p>` : ""; }
+      n++;
+      const parts = l.parts.map(p => {
+        if (typeof p === "string") return math(p);
+        const o = optOf(p.slot, state[p.slot]);
+        const changed = state[p.slot] !== TODAY[p.slot];
+        return `<button type="button" class="chip${changed ? " changed" : ""}" data-slot="${p.slot}" aria-expanded="${open === p.slot}" aria-label="${SLOTS[p.slot].title}: ${o.label}. Change">${math(o.tex)}</button>`;
+      }).join("");
+      const tray = l.parts.filter(p => typeof p !== "string" && p.slot === open).map(p => trayHtml(p.slot)).join("");
+      return `<div class="eq">${parts}<span class="no">(${n})</span></div>${tray}`;
+    }).join("");
+    return `<div class="block"><div class="block-h"><h2>${b.h}</h2><span class="who">${b.who}</span></div>${lines}</div>`;
+  }).join("");
+}
+function trayHtml(slot) {
+  const s = SLOTS[slot];
+  return `<div class="tray" role="radiogroup" aria-label="${s.title}"><div class="tray-h">${s.title}: choose a proposition</div>` +
+    s.opts.map(o => `<button type="button" class="opt" role="radio" aria-checked="${state[slot] === o.id}" data-slot="${slot}" data-opt="${o.id}">
+      <span class="t">${o.label}</span>${pill(o.status)}<span class="m">${math(o.tex)}</span><span class="d">${o.desc ? o.desc + " " : ""}Ships via ${o.who === "Hyperliquid" ? "a Hyperliquid change" : "trade.xyz's relayer"}.</span></button>`).join("") + `</div>`;
+}
+function diffs(a, b) { return Object.keys(SLOTS).filter(k => a[k] !== b[k] && (!["H", "DV", "ST"].includes(k) || hasHold(a) || hasHold(b)) && (k !== "V" || usesP(a) || usesP(b))); }
+function fmt(v, u) {
+  if (v === null || v === undefined) return "–";
+  if (u === "$") return (v < 0 ? "−$" : "$") + Math.abs(v).toLocaleString("en-US");
+  if (u === "$M") return "$" + v.toFixed(2) + "M";
+  if (u === "bp") return (+v).toLocaleString("en-US") + " bp";
+  if (u === "% of OI") return v + "% of OI";
+  return (+v).toLocaleString("en-US");
+}
+function renderResults() {
+  const exact = DATA.designs.find(d => diffs(d.combo, state).length === 0);
+  const m = document.getElementById("match");
+  let shown = exact;
+  if (exact) {
+    m.innerHTML = `<div><strong>${exact.name}</strong> ${pill(exact.status)}</div><div class="prose">This exact combination was tested. ${exact.status === "running" ? "Engine runs are in progress; the cells below are from the offline screen and from package_k where it applies." : ""}</div>`;
+  } else {
+    // nearest: fewest differing parts; ties go to the combination sharing more of your changes, then to the one with more results
+    const mine = Object.keys(SLOTS).filter(k => state[k] !== TODAY[k]);
+    const shared = d => mine.filter(k => d.combo[k] === state[k]).length;
+    const near = DATA.designs.map(d => ({ d, diff: diffs(d.combo, state) })).sort((a, b) => a.diff.length - b.diff.length || shared(b.d) - shared(a.d) || (Object.keys(b.d.results).length - Object.keys(a.d.results).length)).slice(0, 4);
+    shown = near[0].d;
+    m.innerHTML = `<div><strong>Not tested as a whole</strong></div><div class="prose">No run uses exactly this combination. The table shows the nearest tested one, <b>${shown.name}</b>, which differs in: ${near[0].diff.map(k => SLOTS[k].title).join(", ") || "nothing visible"}. Load a nearby tested combination:</div>
+      <div class="near">${near.map(x => `<button type="button" data-load="${x.d.id}">${x.d.name}<span>${x.diff.length} difference${x.diff.length === 1 ? "" : "s"}: ${x.diff.map(k => SLOTS[k].title).join(", ")}</span></button>`).join("")}</div>`;
+  }
+  const r = shown.results;
+  const body = ROWS.map(row => {
+    if (row.length === 1) return `<tr class="grp"><td colspan="4">${row[0]}</td></tr>`;
+    const [k, label, better, u] = row, c = r[k];
+    if (!c) return `<tr><td>${label}</td><td class="na">–</td><td class="na">not run</td><td class="na"></td></tr>`;
+    const d = c.v - c.ref, good = better === "lower" ? d < 0 : d > 0, same = Math.abs(d) < 1e-9;
+    const ch = same ? "same" : (d > 0 ? "+" : "−") + fmt(Math.abs(d), u === "$" ? "$" : u).replace(/^−?/, "").replace(/^\$/, "$");
+    return `<tr><td>${label}${c.note ? `<span class="src">${c.note}</span>` : ""}</td><td>${fmt(c.ref, u)}<span class="src">${c.refname}</span></td><td>${fmt(c.v, u)}<span class="src">${c.src}</span></td><td class="${same ? "" : good ? "good" : "bad"}">${ch}</td></tr>`;
+  }).join("");
+  document.querySelector("#tbl tbody").innerHTML = body;
+}
+function render() { renderSheet(); renderResults(); const sel = document.getElementById("preset"); const ex = DATA.designs.find(d => diffs(d.combo, state).length === 0); sel.value = ex ? ex.id : ""; }
+document.getElementById("sheet").addEventListener("click", e => {
+  const opt = e.target.closest(".opt");
+  if (opt) { state[opt.dataset.slot] = opt.dataset.opt; open = null; render(); return; }
+  const chip = e.target.closest(".chip");
+  if (chip) { open = open === chip.dataset.slot ? null : chip.dataset.slot; renderSheet(); const t = document.querySelector(".tray .opt[aria-checked='true']"); if (t) t.focus(); }
+});
+document.getElementById("match").addEventListener("click", e => { const b = e.target.closest("[data-load]"); if (b) { state = { ...DATA.designs.find(d => d.id === b.dataset.load).combo }; open = null; render(); } });
+document.getElementById("reset").addEventListener("click", () => { state = { ...TODAY }; open = null; render(); });
+const sel = document.getElementById("preset");
+const groups = [["Today", d => d.id === "current"], ["Lead and running", d => ["lead", "running", "in the core package"].includes(d.status)], ["Mark price", d => /^(p\d|p1|clamp|ext|band25$|venues|own_|et_)/.test(d.id) && !/^p4_|^p4d_/.test(d.id)],
+  ["Packages", d => d.id.startsWith("package")], ["Margin and liquidation", d => /^(p4_|p4d_|b075|t1|o1lock|cluster|band25_cluster)/.test(d.id)]];
+const seen = new Set();
+sel.innerHTML = `<option value="">Custom combination</option>` + groups.map(([g, f]) => { const ds = DATA.designs.filter(d => f(d) && !seen.has(d.id)); ds.forEach(d => seen.add(d.id)); return `<optgroup label="${g}">${ds.map(d => `<option value="${d.id}">${d.name}</option>`).join("")}</optgroup>`; }).join("");
+sel.addEventListener("change", () => { const d = DATA.designs.find(x => x.id === sel.value); if (d) { state = { ...d.combo }; open = null; render(); } });
+render();
+</script>

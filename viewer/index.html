@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rule explorer · trade.xyz mark and liquidation rules</title>
+<meta name="description" content="Replays of recorded trade.xyz market days under today's rules and suggested ones, side by side.">
+<meta name="author" content="@ymsynn">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/uplot@1.6.31/dist/uPlot.min.css">
+<link rel="stylesheet" href="style.css?v=4">
+</head>
+<body>
+<header>
+  <div class="top">
+    <h1>Rule explorer</h1>
+    <a class="by" href="https://x.com/ymsynn" target="_blank" rel="noopener">@ymsynn</a>
+  </div>
+  <p class="lede">trade.xyz on Hyperliquid: today's mark-price and liquidation rules next to suggested ones, on recorded market days.</p>
+  <p class="intro">Each line on these charts is a replay: a recorded day of one of trade.xyz's markets, run again in a rebuilt copy of
+  Hyperliquid's engine under a chosen set of rules. Pick a test, change a part of the formulas, and add the combination to
+  compare it with today's rules and with the proposal. The page computes nothing: a combination that was not replayed
+  cannot be picked.</p>
+  <nav class="links" aria-label="Paper and code">
+    <a href="../docs/mark_formulas.pdf"><b>Paper</b><span>what the tests show, what it costs, the limits (PDF)</span></a>
+    <a href="https://github.com/ymsynn/xyz-backstop-study" target="_blank" rel="noopener"><b>GitHub</b><span>the engine, the data pipeline and every result</span></a>
+  </nav>
+</header>
+<main>
+  <section class="row">
+    <select id="test" aria-label="Test"></select>
+    <span id="test-sub" class="muted"></span>
+  </section>
+
+  <form id="builder">
+    <div class="row sheet-head">
+      <label for="mark-pick">Start from</label>
+      <select id="mark-pick"></select>
+      <span class="muted">Click a highlighted term to change it and make your own combination.</span>
+    </div>
+    <div id="sheet"></div>
+    <div class="row">
+      <button id="add" type="submit">Add</button>
+      <span id="builder-note" class="muted"></span>
+    </div>
+  </form>
+
+  <section class="row">
+    <span class="label">On the charts</span>
+    <div id="chips"></div>
+  </section>
+
+  <nav id="tabs" role="tablist"></nav>
+  <section id="view">
+    <div id="votes-pick" class="row" hidden><select id="votes-combo" aria-label="Combination"></select></div>
+    <div id="panels"></div>
+    <div id="table" hidden></div>
+    <p id="hint" class="muted">Drag to zoom, double-click to reset. Minute 0: <span id="zero"></span>.</p>
+  </section>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/uplot@1.6.31/dist/uPlot.iife.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="app.js?v=5"></script>
+<script src="data/index.js?v=4"></script>
+</body>
+</html>

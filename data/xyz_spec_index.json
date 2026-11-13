@@ -1,0 +1,489 @@
+{
+ "source": "https://docs.trade.xyz/llms-full.txt, Specification Index and pre-IPO table, read in the browser 2026-11-09",
+ "markets": [
+  {
+   "name": "SP500",
+   "mode": "Cross Margin"
+  },
+  {
+   "name": "XYZ100",
+   "mode": "Cross Margin"
+  },
+  {
+   "name": "BRENTOIL",
+   "mode": "Cross Margin"
+  },
+  {
+   "name": "WTIOIL",
+   "mode": "Cross Margin"
+  },
+  {
+   "name": "NATGAS",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "GOLD",
+   "mode": "Cross Margin"
+  },
+  {
+   "name": "SILVER",
+   "mode": "Cross Margin"
+  },
+  {
+   "name": "PLATINUM",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "PALLADIUM",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "COPPER",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "JPY",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "EUR",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "GBP",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "URNM",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "TSLA",
+   "mode": "Cross Margin"
+  },
+  {
+   "name": "NVDA",
+   "mode": "Cross Margin"
+  },
+  {
+   "name": "GOOGL",
+   "mode": "Cross Margin"
+  },
+  {
+   "name": "INTC",
+   "mode": "Cross Margin"
+  },
+  {
+   "name": "MU",
+   "mode": "Cross Margin"
+  },
+  {
+   "name": "PLTR",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "ORCL",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "MSTR",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "MSFT",
+   "mode": "Cross Margin"
+  },
+  {
+   "name": "META",
+   "mode": "Cross Margin"
+  },
+  {
+   "name": "AMZN",
+   "mode": "Cross Margin"
+  },
+  {
+   "name": "AMD",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "AAPL",
+   "mode": "Cross Margin"
+  },
+  {
+   "name": "COIN",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "HOOD",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "NFLX",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "CRCL",
+   "mode": "Cross Margin"
+  },
+  {
+   "name": "SNDK",
+   "mode": "Cross Margin"
+  },
+  {
+   "name": "RIVN",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "USAR",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "TSM",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "SKHYNIX",
+   "mode": "Cross Margin"
+  },
+  {
+   "name": "SAMSUNG",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "HYUNDAI",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "EWY",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "EWJ",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "EWT",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "BABA",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "CRWV",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "DKNG",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "HIMS",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "COST",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "LLY",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "JP225",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "KR200",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "BIRD",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "DRAM",
+   "mode": "Cross Margin"
+  },
+  {
+   "name": "XLE",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "BX",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "LITE",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "GME",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "RKLB",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "MRVL",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "ZM",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "EWZ",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "EBAY",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "CBRS",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "PURRDAT",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "ARM",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "BB",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "ASML",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "IBM",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "DELL",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "AVGO",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "QNT",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "NOW",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "WDC",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "NBIS",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "SPCX",
+   "mode": "Cross Margin"
+  },
+  {
+   "name": "BE",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "SMH",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "NOK",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "MINIMAX",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "ZHIPU",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "QCOM",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "STRC",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "KIOXIA",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "SOFTBANK",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "BOT",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "AMAT",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "SHAZ",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "SKHY",
+   "mode": "Cross Margin"
+  },
+  {
+   "name": "GIGADEV",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "CXMT",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "KORU",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "GEV",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "LYTE",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "NCLD",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "SOXL",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "IREN",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "AAOI",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "RDDT",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "NET",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "CRWD",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "MAGS",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "UNITREE",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "MRNA",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "XBI",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "SHEIN",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "BMNR",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "KSTR",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "SNXX",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "CVX",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "TLT",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "DIESEL",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "UMC",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "LRCX",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "GLW",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "TWST",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "CAMBRICON",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "RELIANCE",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "NIFTY",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "JIO",
+   "mode": "Normal Isolated"
+  },
+  {
+   "name": "ICE",
+   "mode": "Normal Isolated"
+  }
+ ],
+ "preipo": {
+  "ANT": "Live",
+  "OURA": "Live",
+  "JIO": "Converted",
+  "SHEIN": "Converted",
+  "UNITREE": "Converted",
+  "CXMT": "Converted",
+  "SKHY": "Converted",
+  "SPCX": "Converted",
+  "QNT": "Converted",
+  "CBRS": "Converted"
+ }
+}

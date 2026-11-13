@@ -1,0 +1,419 @@
+\documentclass[10.5pt,a4paper]{article}
+\usepackage[margin=2.1cm]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage[table]{xcolor}
+\usepackage{booktabs,tabularx,array}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\usepackage[most]{tcolorbox}
+\usepackage[hidelinks]{hyperref}
+\hypersetup{pdftitle={Protocol suggestions for xyz}}
+\usepackage{titlesec}
+\usepackage{needspace,etoolbox,xltabular}
+\pretocmd{\section}{\needspace{8\baselineskip}}{}{}
+\pretocmd{\subsection}{\needspace{6\baselineskip}}{}{}
+\titlespacing*{\subsection}{0pt}{1.1ex plus .3ex}{.5ex}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{.35ex}
+
+% changed terms: blue text (the charts' proposal blue); removed terms: red
+\definecolor{chg}{RGB}{255,214,153}
+\definecolor{rem}{RGB}{200,40,40}
+\definecolor{lead}{RGB}{20,120,60}
+\definecolor{rej}{RGB}{170,40,40}
+\definecolor{sup}{RGB}{110,110,110}
+\definecolor{pend}{RGB}{30,90,170}
+\newcommand{\chg}[1]{\ensuremath{{\color[HTML]{2F74D0}#1}}}
+\newcommand{\rem}[1]{\textcolor{rem}{\ensuremath{#1}}}
+\newcommand{\med}{\operatorname{med}}
+\newcommand{\clip}{\operatorname{clip}}
+\newcommand{\vwmed}{\operatorname{vwmed}}
+\newcommand{\ema}{\operatorname{EMA}}
+\newcommand{\D}{\mathcal{D}}
+% status line: \st{colour}{status}{who ships it}
+\newcommand{\st}[3]{\textcolor{#1}{\textbf{#2}} \,·\, \emph{#3}\par}
+\newcommand{\res}[1]{\par\textbf{What the replay showed.} #1\par}
+\newcommand{\resh}[2]{\par\textbf{#1} #2\par}
+
+% --- core pages (paper_core.tex): one idea per page
+\definecolor{today}{HTML}{E8683A}
+\definecolor{vault}{HTML}{1FAF7A}
+\definecolor{mute}{HTML}{6B6B6B}
+\definecolor{rule}{HTML}{E9E7E2}
+\definecolor{boxbg}{HTML}{F7F6F3}
+% core formulas page: a term that differs from today's rules, in the charts' proposal blue
+\definecolor{prop}{HTML}{2F74D0}
+\newcommand{\nw}[1]{{\color{prop}#1}}
+% today vs proposal, at the top of each change page
+\newcommand{\changerule}[2]{{\small\renewcommand{\arraystretch}{1.3}\setlength{\tabcolsep}{5pt}%
+\noindent\begin{tabularx}{\textwidth}{@{}>{\bfseries\raggedright\arraybackslash}p{1.75cm}>{\raggedright\arraybackslash}X@{}}\toprule
+\textcolor{today}{Today} & #1\\ \textcolor{prop}{Suggested} & #2\\\bottomrule\end{tabularx}}\par\vspace{.6ex}}
+% \page{message title}{tag line}: starts a new page
+\newcommand{\page}[2]{\clearpage{\LARGE\bfseries\raggedright #1\par}\vspace{.3ex}{\parskip=0pt\color{mute}\small #2\par}\vspace{1.2ex}}
+\newcommand{\foot}{\par\vspace{1.5ex plus 1fil}}
+% the technical block at the foot of a core page
+\newtcolorbox{exact}[1][The rule, exactly]{enhanced,colback=boxbg,colframe=rule,boxrule=.5pt,arc=1.5pt,left=7pt,right=7pt,top=5pt,bottom=5pt,
+  fonttitle=\bfseries\small,coltitle=black,colbacktitle=boxbg,title={#1},fontupper=\small}
+\newtcolorbox{words}[1][Words used]{enhanced,colback=white,colframe=rule,boxrule=.5pt,arc=1.5pt,left=7pt,right=7pt,top=5pt,bottom=5pt,
+  fonttitle=\bfseries\small,coltitle=black,colbacktitle=white,title={#1},fontupper=\small}
+\newcommand{\ptag}[2]{\textcolor{#1}{\textbf{#2}}}
+% a chart that sim/figs.py does not draw yet
+\newcommand{\chartpending}[1]{\begin{center}\fcolorbox{rule}{white}{\parbox[c][6.2cm][c]{.95\textwidth}{\centering\color{mute}\small\emph{Chart to come:} #1}}\end{center}}
+
+\begin{document}
+\setlength{\parskip}{.35ex}
+{\LARGE\bfseries Variants tested before the proposal\par}\vspace{.5ex}
+{\normalsize Companion note to \emph{Protocol suggestions for xyz} \,·\, @ymsynn \,·\, November 13, 2026\par}\vspace{1.5ex}
+
+This note keeps the variants we tried and did not keep: other mark formulas, margin rules, liquidation sizes, packages and vault-sale rules. They were scored in earlier runs, on earlier builds of the market-days and of the engine, so their baselines differ from the paper's final run. Under today's rules, on the three earnings crashes, the earlier runs give 819 takeovers, 810 of them below the external price, \$9.82M inherited and a value at takeover of $-\$152$k; the paper's final run gives 819 takeovers, 814 below the external price, \$10.75M inherited and $-\$157.9$k (values at takeover are not the vault's result). Other earlier baselines and the paper's counterparts: stuck feed, \$14.01M inherited (paper: \$15.11M); seven held-out market-days, 106 takeovers and \$1.61M (paper: 103 and \$1.25M); a $-20\%$ wrong price for 5\,min, \$7.03M handed to the vault (paper: \$7.41M). Compare each variant with the ``today'' figure in its own entry. Variants in \S\ref{sec:mark} to \S\ref{sec:liq} were scored before two relayer rules were added to our reconstruction of today's rules on November 8 (the paper, \S A); on the crash days they change no takeover count.
+
+\textbf{Words used here.} Terms in \textcolor[HTML]{2F74D0}{\textbf{blue}} are what a variant changes against the formula it builds on; red terms are removed. \emph{Hold}: while xyz's book and the feed disagree, the center of the discovery bound stays where it was. \emph{Fair sweep}: the vault also sells to every resting bid at or above the oracle (\S\ref{sec:vault}). \emph{Core package}: an earlier candidate, the mark of \S\ref{var:pk} with the cut-back (\S\ref{var:core}). \emph{Own book A, B, C}: three marks built from xyz's own book, without the external price. \emph{Wash}, \emph{wall}: an attacker trading with itself at a wrong price, or posting large bids above the market; \emph{faithful} when the attacker is a real margined account the engine can liquidate. \emph{Restore-to-IM}: the paper's cut-back (change 3). \emph{Normal markets}: the rest of the three crash days, outside regular hours and the crash window (60\,s before the fall to 30\,min after). \emph{Wick}: a brief spike of xyz's book price. \emph{Engine with margined attackers}: replays where the attacker is a real margined account (faithful). \emph{Vault unwind}: how the vault sells what it inherits (\S\ref{sec:vault}). \emph{(locked)}: a margin tier measured at the position's last increase and kept. Every other term is defined in the paper.
+
+\textbf{Today's rules in the earlier run}, on the market-days as first built (the base for the variants below): on the three crashes 819 takeovers, 810 of them already below the external price, \$9.82M inherited, value at takeover $-\$152$k (not the vault's result), because the mark moves at most 0.5\% per update behind an external price that gaps; a wrong price of $-20\%$ for 5\,min hands the vault \$7.03M and fires 390 stops; with a stuck feed the vault inherits \$14.01M; on the seven held-out market-days, 106 takeovers and \$1.61M inherited.
+
+\section*{The variants at a glance}
+The entries of \S\ref{sec:mark} to \S\ref{sec:pkg} are background: earlier candidates and what we learned from them. A reader who wants only today's rules and the proposal can read \S A of the paper, the paper's proposal (\S B), \S C of the paper and \S E of the paper.\par
+{\footnotesize\renewcommand{\arraystretch}{1.0}\begin{xltabular}{\textwidth}{@{}l>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{5.2cm}@{}}
+\toprule
+ & Variant & Status\\
+\midrule
+\endhead
+\S\ref{var:p1} & Remove the 0.5\% limit per update & replaced by \S\ref{var:p4d}\\
+\S\ref{var:auto1} & A 2\% limit per update & not kept (no better than \S\ref{var:p1}, one more parameter)\\
+\S\ref{var:auto2} & Mark = external price (reference) & reference, not a proposal\\
+\S\ref{var:auto3} & External-anchored band & not kept (no better than \S\ref{var:p1}, three more parameters)\\
+\S\ref{var:auto4} & Median of venues & rejected (a competitor's price)\\
+\S\ref{var:auto5} & Own book A, B, C & rejected (A, B); C replaced by \S\ref{var:p2}\\
+\S\ref{var:p2} & Median of the external price, xyz trades and xyz's book & replaced by \S\ref{var:p4}\\
+\S\ref{var:auto6} & Window variants of \S\ref{var:p2} & not kept (a fixed \$1M window could be moved by five \$500k trades)\\
+\S\ref{var:p3} & Anchor the bound on a robust external price & replaced by \S\ref{var:p4}\\
+\S\ref{var:p4} & The band moves only when the feed and xyz agree & replaced by \S\ref{var:p4b}\\
+\S\ref{var:p4b} & The hold also needs xyz's book & replaced by \S\ref{var:p4d}\\
+\S\ref{var:p4c} & A hold expires after 150\,s & rejected (a long wrong price came through all at once)\\
+\S\ref{var:p4d} & A hold steps toward the feed & replaced by the packages (\S\ref{sec:pkg})\\
+\S\ref{var:auto7} & Maintenance buffer \texorpdfstring{$\tfrac34$}{3/4} & not kept (moves losses to traders as more forced liquidation)\\
+\S\ref{var:auto8} & Size tiers & rejected (split across wallets)\\
+\S\ref{var:auto9} & Open-interest share tiers & rejected (asks traders for \$6.62M more margin)\\
+\S\ref{var:auto10} & Liquidation-cluster rule & rejected (unfair)\\
+\S\ref{var:auto11} & Earnings leverage cuts & rejected (singles out earnings)\\
+\S\ref{var:auto12} & Backstop threshold & rejected (the vault inherits less only because positions keep less margin)\\
+\S\ref{var:auto13} & Partial-liquidation cooldown & rejected (no gain unless partial sales stop entirely)\\
+\S\ref{var:auto14} & Restore-to-margin liquidation & kept: change 3 of the proposal\\
+\S\ref{var:auto15} & Study: what restore-to-IM does to xyz's book & an earlier-run study, not a variant\\
+\S\ref{var:auto16} & Package: the mark of \S\ref{var:p4d} with restore-to-IM & not kept (272 extra stop orders on normal markets)\\
+\S\ref{var:auto17} & Hold cap & rejected (no gain in any test)\\
+\S\ref{var:auto18} & Hold-start rule (30\,s) & not kept (a wash by the attacker starts a hold)\\
+\S\ref{var:auto19} & Hold-start rule (one update) & rejected (more accounts liquidated against a wall of bids)\\
+\S\ref{var:auto20} & Trade price through the 150\,s average & rejected (a wash still lifts the mark 6.63\%)\\
+\S\ref{var:auto21} & Today's formula outside feed failures & not kept (the book input still walks with an attacker)\\
+\S\ref{var:anch} & Book input anchored to the current external price & not kept (replaced by later candidates)\\
+\S\ref{var:pv} & Feed-failure holds with a 0.5\% gap & not kept (read a closed market's quiet feed as stuck)\\
+\S\ref{var:pk} & A closed market's quiet feed is not a failure & replaced by \S\ref{var:core}\\
+\S\ref{var:pb} & Hold the external price in daily breaks & rejected (we prefer one rule for all closures)\\
+\S\ref{var:core} & Core package: \S\ref{var:pk} without the vault unwind & replaced by \S\ref{sec:lead}\\
+\S\ref{var:auto22} & Walking external feed (a test of every package) & a test of the packages above, not a variant\\
+\S\ref{var:auto23} & Divergence trigger & rejected (the mark belongs to whoever pushes xyz's book)\\
+\S\ref{var:auto24} & Hold released only while xyz's price is stale & rejected with the trigger\\
+\S\ref{var:auto25} & Corroborated speed & rejected (only delays a sustained walk)\\
+\S\ref{sec:lead} & An earlier candidate: a frozen \texorpdfstring{$E$}{E} is priced like a closed market & replaced by the paper's proposal (\S B); its not-live rule is kept\\
+\S\ref{var:sweep} & Fair sweep (vault unwind) & not part of the proposal (vault sales are not studied in the paper)\\
+\S\ref{var:clip} & Larger clip (vault unwind) & not part of the proposal (vault sales are not studied in the paper)\\
+\bottomrule
+\end{xltabular}}
+
+\section{Mark-price variants}\label{sec:mark}
+Every mark variant on the three crashes, against today's rules (earlier run; final run: the paper's proposal (\S B)). The ``below $E$'' counts are out of that variant's own takeovers.\par\vspace{.4ex}
+{\footnotesize\begin{tabular}{@{}lrrrr@{}}
+\toprule
+ & takeovers & of which below $E$ & inherited & value at takeover$^\dagger$\\
+\midrule
+Today's rules & 819 & 810 & \$9.82M & $-\$152$k\\
+Remove the 0.5\% limit (\S\ref{var:p1}) & 579 & 322 & \$12.72M & $+\$84$k\\
+2\% limit & 625 & 353 & \$12.74M & $+\$88$k\\
+Mark = external price & 574 & 321 & \$12.91M & $+\$87$k\\
+External-anchored band & 570 & 318 & \$12.63M & $+\$84$k\\
+Median of venues (rejected on principle) & 555 & 293 & \$12.64M & $+\$91$k\\
+Own book A & 549 & 295 & \$12.53M & $+\$82$k\\
+Own book B & 184 & 137 & \$9.93M & $+\$54$k\\
+Own book C & 250 & 12 & \$11.12M & $+\$99$k\\
+Median with xyz trades and book (\S\ref{var:p2}) & 550 & 300 & \$12.76M & $+\$86$k\\
+Robust anchor, $N=10$ (\S\ref{var:p3}) & 550 & 300 & \$12.76M & $+\$86$k\\
+Robust anchor, $N=20$ & 560 & 303 & \$12.64M & $+\$84$k\\
+\bottomrule
+\end{tabular}\par{\footnotesize $^\dagger$ Valued at the external price when handed over; not the vault's result.}}\par\vspace{.6ex}
+
+\subsection{Remove the 0.5\% limit per update}\label{var:p1}
+\st{sup}{replaced by \S\ref{var:p4d} \,·\, earlier run}{relayer}
+The published prices follow $E$ at once; Hyperliquid's 1\% per update is the only speed limit.
+\begin{equation}
+O_t = X^1_t = \D_t\big(\chg{E_t}\big),\qquad X^2_t = \D_t\big(\chg{E_t + e_t}\big)
+\end{equation}
+Removed: \rem{\clip(\cdot,\ O_{t-k}(1\pm c))} and the hull clamp.
+\res{Takeovers come in time: 322 of 579 takeovers below the external price instead of 810 of 819, and value when handed to the vault $+\$84$k instead of $-\$152$k (not the vault's result). But the vault inherits more, \$12.72M instead of \$9.82M, because a mark that follows the crash hands it positions it would otherwise never see. With nothing left to slow a false price, a $-5\%$ wrong price for 30\,s hands it \$2.22M and fires 225 stops: in our reconstruction, the 0.5\% limit is the only defense we see in today's rules against a wrong feed.}
+
+\subsection{A 2\% limit per update}\label{var:auto1}
+\st{sup}{not kept (no better than \S\ref{var:p1}, one more parameter) \,·\, earlier run}{relayer}
+Today's formula with a wider clamp: $c = \chg{2\%}$.
+\res{625 takeovers, 353 of them below the external price (today 810 of 819), \$12.74M inherited, value at takeover $+\$88$k (not the vault's result): no better than \S\ref{var:p1}, with one more parameter.}
+
+\subsection{Mark = external price (reference)}\label{var:auto2}
+\st{sup}{reference, not a proposal \,·\, earlier run}{relayer}
+How much anchoring alone gives: $X^1_t = X^2_t = \chg{E_t}$.
+\res{574 takeovers, 321 of them below the external price (today 810 of 819), \$12.91M inherited, value at takeover $+\$87$k (not the vault's result): no better than \S\ref{var:p1}.}
+
+\subsection{External-anchored band}\label{var:auto3}
+\st{sup}{not kept (no better than \S\ref{var:p1}, three more parameters) \,·\, earlier run}{relayer}
+Two prices a band apart around a slow premium, so the book picks the mark inside it:
+\begin{equation}
+X^{1,2}_t = \chg{C_t \mp w},\qquad \chg{C_t = E_t + \clip\big(\ema_{1800\,\text{s}}(\text{mid}-E),\ \pm 0.5\%\big)},\quad w = 0.25\%
+\end{equation}
+\res{570 takeovers, 318 of them below the external price (today 810 of 819), \$12.63M inherited, value at takeover $+\$84$k (not the vault's result): the same as \S\ref{var:p1}, with three more parameters.}
+
+\subsection{Median of venues}\label{var:auto4}
+\st{rej}{rejected (a competitor's price) \,·\, earlier run}{relayer}
+$X^1_t = E_t,\ X^2_t = \chg{\text{Binance}_t}$: the mark is the median of two venues and the xyz book.
+\res{The best of the designs that use an outside venue (555 takeovers, 293 of them below the external price, against 819 and 810 today; value at takeover $+\$91$k, against $-\$152$k; not the vault's result). Rejected anyway: we chose to keep a competitor's price out of the mark, so that xyz's price does not depend on another venue.}
+
+\subsection{Own book A, B, C}\label{var:auto5}
+\st{rej}{rejected (A, B); C replaced by \S\ref{var:p2} \,·\, earlier run}{relayer}
+The mark from xyz alone: A: $X^1_t = \chg{\overline{I}^{\,\$100\text{k}}_t}$ (time-averaged impact mid), $X^2_t = \chg{\text{VWAP}_{10\,\text{s}}}$. B: A with each step crossing at most \$1M of liquidation prices. C: A, both inputs $= I_t$ once $E$ confirms the move.
+\res{A: 549 takeovers, 295 of them below the external price, value at takeover $+\$82$k (not the vault's result); but a \$1M push of xyz's book at the crash moved the mark 0.19\%, against 0.045 to 0.062\% for \S\ref{var:p2}. B: 184 takeovers, 137 of them below the external price, value $+\$54$k (not the vault's result). C: 250 takeovers, only 12 of them below the external price, value $+\$99$k (not the vault's result), but no better than A against pushes.}
+
+\subsection{Median of the external price, xyz trades and xyz's book}\label{var:p2}
+\st{sup}{replaced by \S\ref{var:p4} \,·\, earlier run}{relayer}
+$E$ becomes one vote of three; another is xyz's voluntary trades, which a pushed book alone cannot move:
+\begin{equation}
+X^1_t = \D_t(E_t),\qquad X^2_t = \D_t\big(\chg{P_t}\big)
+\end{equation}
+Removed: \rem{e_t} and the clamp. Liquidation, backstop and vault fills are excluded from $P_t$.
+\res{On the crashes: 550 takeovers, 300 of them below the external price (today 810 of 819), \$12.76M inherited, value at takeover $+\$86$k (not the vault's result). A $-5\%$ wrong price for 30\,s: no takeover and 1 stop. But $-20\%$ for 5\,min hands the vault \$7.09M (today \$7.03M), because the discovery bound follows the bad price. \$1M pushes of xyz's book at the crash moved the mark 0.045 to 0.062\%, against 0.19\% for own book A.}
+
+\subsection{Window variants of \S\ref{var:p2}}\label{var:auto6}
+\st{sup}{not kept (a fixed \$1M window could be moved by five \$500k trades) \,·\, earlier run}{relayer}
+$W_t = \chg{\$1\text{M}}$ over 60\,s; or $W_t = \chg{\max(\$250\text{k}, \text{vol}_{60\,\text{s}})}$; or $H = \chg{60\,\text{s}}$.
+\res{Same crash results as \S\ref{var:p2} (549 to 551 takeovers, 299 to 300 of them below the external price, value at takeover $+\$86$k; not the vault's result). Measuring xyz's trades over a fixed \$1M let five \$500k trades move the mark 0.36\%; a window of the last 30\,s of trading (Hyperliquid's own cooldown) did not, and was kept.}
+
+\subsection{Anchor the bound on a robust external price}\label{var:p3}
+\st{sup}{replaced by \S\ref{var:p4} \,·\, earlier run}{relayer}
+A short wrong price cannot move the bound's center:
+\begin{equation}
+R_t = \chg{\med(E_{t-N+1},\dots,E_t)},\qquad N = 10\ \ (\text{or } 20 \approx 60\,\text{s})
+\end{equation}
+\res{Crash results unchanged (550 to 560 takeovers, 300 to 303 of them below the external price, value at takeover $+\$84$ to 86k; not the vault's result). Wrong prices of $-5\%$: no takeover, no stop. $-20\%$ for 30\,s: \$5.28M taken over with $N=10$ and \$2.65M with $N=20$ (today \$5.31M); held 5\,min: \$7.07M (today \$7.03M). A long wrong price still passes.}
+
+\subsection{The band moves only when the feed and xyz agree}\label{var:p4}
+\st{sup}{replaced by \S\ref{var:p4b} \,·\, earlier run}{relayer}
+The bound's center follows $E$ only while xyz's trades agree with it within the band itself:
+\begin{equation}
+R_t = \begin{cases} E_t & \chg{|E_t - P_t| \le d\,E_t}\\ \chg{R_{t-1}} & \text{otherwise (hold)}\end{cases}
+\end{equation}
+\res{Crash: 550 takeovers, 298 of them below the external price, value at takeover $+\$75$k (not the vault's result), against 819, 811 and $-\$129$k today (earlier run; both measured here against Binance's price, used only as a yardstick). Every wrong price ($-5\%$ or $-20\%$, up to 5\,min): no takeover, no stop, the mark moves at most 0.03\%. Normal markets: 1 liquidation that only this variant makes, 10 that only today's rules make. Weakness: \$50M of wash trades at $+6\%$ froze the band and lifted the mark 4.44\%, which \S\ref{var:p4b} brings to 0.37\%.}
+
+\subsection{The hold also needs xyz's book}\label{var:p4b}
+\st{sup}{replaced by \S\ref{var:p4d} \,·\, earlier run}{relayer}
+A hold needs xyz's trades \emph{and} its book to disagree with the feed, so wash trades alone cannot freeze it:
+\begin{equation}
+\text{hold} \iff |E_t - P_t| > d\,E_t\ \ \chg{\wedge\ |E_t - I_t| > d\,E_t \text{ on the same side}}
+\end{equation}
+\res{The \$50M wash now lifts the mark 0.37\% instead of 4.44\%. Wrong prices as in \S\ref{var:p4}.}
+
+\subsection{A hold expires after 150\,s}\label{var:p4c}
+\st{rej}{rejected (a long wrong price came through all at once) \,·\, earlier run}{relayer}
+\S\ref{var:p4b}, but after $\chg{150\,\text{s}}$ (trade.xyz's mark time constant) the center jumps back to $E$.
+\res{A $-20\%$ wrong price for 5\,min drops the mark 16.2\% and hands the vault \$8.11M, worse than today (\$6.98M in the same run): when the hold expires, the long wrong price comes through all at once.}
+
+\subsection{A hold steps toward the feed}\label{var:p4d}
+\st{sup}{replaced by the packages (\S\ref{sec:pkg}) \,·\, earlier run}{relayer}
+\S\ref{var:p4b}; while a hold lasts, every 150\,s the center moves toward $E$ by one band width, so no hold lasts forever:
+\begin{equation}
+R \leftarrow R + \chg{\clip(E - R,\ \pm d\,R)}\quad\text{every 150\,s while held}
+\end{equation}
+\res{A $-20\%$ wrong price for 5\,min: nothing is taken over (today \$7.03M). Crash results as \S\ref{var:p2}. SK Hynix on July 27, the largest real ADL: the cascade of that day (in that earlier run, 945 positions and \$31.5M liquidated, then traders auto-deleveraged) does not start.}
+
+%==========================================================================================
+\section{Margin variants}\label{sec:margin}
+\textbf{Not in the proposal,} because traders would have felt it: lower leverage for large positions (\$7.45M to \$21.2M of extra margin asked of traders, and bypassed by splitting a position across wallets); a leverage cut around earnings (up to \$49.8M of extra margin); a rule that depends on other traders' positions; earlier liquidation for everyone (1.5 to 2.3 times more forced liquidation). All were tested and dropped; the entries follow.
+
+Measured with the \S\ref{var:p4} mark unless an entry says otherwise.
+
+\subsection{Maintenance buffer \texorpdfstring{$\tfrac34$}{3/4}}\label{var:auto7}
+\st{sup}{not kept (moves losses to traders as more forced liquidation) \,·\, earlier run}{Hyperliquid}
+$\text{MM} = \chg{\tfrac34}\,\text{IM}$ (fixed at $\tfrac12$ today), with the takeover at $\tfrac23$ of the new MM, at $\tfrac23$ of the old one, or $\tfrac12 \to \tfrac34$ with the feed's speed.
+\res{With today's mark: \$6.04M inherited (today \$9.82M), but the losses move to traders as 1.5 to 2.3 times more forced liquidation. With the mark of \S\ref{var:p4d}: \$11.2 to 11.8M inherited (without the buffer \$12.76M).}
+
+\subsection{Size tiers}\label{var:auto8}
+\st{rej}{rejected (split across wallets) \,·\, earlier run}{relayer}
+Hyperliquid margin tables by notional: tiers (a) $20\times \to \chg{10\times}$ above \$1M; tiers (b) $\chg{10\times}$ above \$500k, $\chg{5\times}$ above \$2M.
+\res{Tiers (a): \$3.50M inherited (instead of \$12.76M), but traders would have to post \$7.45M more margin. Tiers (b): \$2.67M inherited, but \$21.2M more margin. Rejected: a trader avoids it by splitting a position across wallets.}
+
+\subsection{Open-interest share tiers}\label{var:auto9}
+\st{rej}{rejected (asks traders for \$6.62M more margin) \,·\, earlier run}{Hyperliquid (locked) or relayer (daily)}
+Max leverage $\chg{L/2}$ above 5\% of OI, $\chg{L/4}$ above 15\%, measured at the account's last increase, or on the morning's OI each day.
+\res{Measured at the last increase, with today's mark: \$2.84M inherited (today \$9.82M). Measured each morning: \$3.49M inherited (instead of \$12.76M), but \$6.62M more margin from traders.}
+
+\subsection{Liquidation-cluster rule}\label{var:auto10}
+\st{rej}{rejected (unfair) \,·\, earlier run}{Hyperliquid}
+An account's tier comes from its cluster: same-side positions whose liquidation prices lie within $\chg{k = 2\%}$.
+\res{\$1.51M inherited (instead of \$12.76M with the mark of \S\ref{var:p4}), but \$10.5M more margin from traders. Rejected: one trader's margin would depend on other traders' positions.}
+
+\subsection{Earnings leverage cuts}\label{var:auto11}
+\st{rej}{rejected (singles out earnings) \,·\, earlier run}{relayer}
+Max leverage $\chg{\times\tfrac12}$ (or $\chg{\times\tfrac14}$) from 30\,min (or 5\,min) before the earnings close to 1\,h after.
+\res{Half leverage: \$20k inherited (instead of \$12.76M), but \$17.3M more margin from traders. A quarter: \$5.29M inherited, \$49.8M more margin (the larger cut inherits more; we have not explained why). Rejected: it singles out earnings days for every trader.}
+
+%==========================================================================================
+\section{Liquidation variants}\label{sec:liq}
+All with the \S\ref{var:p4d} mark (base: \$12.76M inherited, with today's liquidation rules).
+
+\subsection{Backstop threshold}\label{var:auto12}
+\st{rej}{rejected (the vault inherits less only because positions keep less margin) \,·\, earlier run}{Hyperliquid}
+The vault takes over below $\chg{\tfrac12}$\,MM or $\chg{\tfrac13}$\,MM instead of $\tfrac23$.
+\res{At $\tfrac12$: \$12.07M inherited (at $\tfrac23$: \$12.76M). At $\tfrac13$: \$9.68M: the vault inherits less only because positions keep less margin to cover the gap.}
+
+\subsection{Partial-liquidation cooldown}\label{var:auto13}
+\st{rej}{rejected (no gain unless partial sales stop entirely) \,·\, earlier run}{Hyperliquid}
+Rounds every $\chg{10\,\text{s}}$ or $\chg{3\,\text{s}}$ instead of 30\,s; or no partials at all.
+\res{Against \$12.76M inherited with 30\,s: every 10\,s, no change; every 3\,s, \$12.61M; no partial sales at all, \$10.89M.}
+
+\subsection{Restore-to-margin liquidation}\label{var:auto14}
+\st{lead}{kept: change 3 of the proposal \,·\, earlier run}{Hyperliquid}
+A large liquidated position is cut back to a target margin each mark update, with no cooldown:
+\begin{equation}
+q_{\text{sold}} = \chg{\min\{q : \text{equity} \ge T(q_{\text{left}})\}},\quad T = \text{IM at maximum leverage},\ \text{positions} > \$100\text{k}
+\end{equation}
+In closed form, $\Delta q = (1 - \text{equity}/\text{IM})\,|q|$.
+Tested targets: MM, $1.5$\,MM, IM, $3$\,MM; all sizes or $>\$100$k; IM plus a speed-triggered buffer.
+\res{Earlier run (final run, the proposal: 583 takeovers, 322 below the external price, \$11.90M, value $+\$63.4$k; not the vault's result). Target IM, positions above \$100k: \$10.98M inherited (instead of \$12.76M). Target MM: \$16.07M. Target IM at every size: \$11.38M.}
+
+\subsection{Study: what restore-to-IM does to xyz's book}\label{var:auto15}
+An earlier run logged every liquidation round of positions starting above \$100k on the three crashes (22 positions per design; 23 in the final run), for two marks (today's and \S\ref{var:p4d}'s) and two sizings (today's and the cut-back).
+These figures come from an earlier run than the final one of the paper, so they differ from it: today's share of the nearby book is 29\% here and 26\% there, and the earlier mark's best-price move with the cut-back 0.39\% here, against the proposal's 0.73\% there.\par
+\res{\par{\footnotesize\begin{tabular}{@{}lrrrr@{}}
+\toprule
+ & \multicolumn{2}{c}{today's mark} & \multicolumn{2}{c}{mark of \S\ref{var:p4d}}\\
+ & today's sizing & cut-back & today's sizing & cut-back\\
+\midrule
+median sold per round & \$47k & \$61k & \$47k & \$81k\\
+1\% depth used, 90th percentile & 29\% & 15\% & 116\% & 36\%\\
+best-price move, 90th percentile & 0.50\% & 0.38\% & 1.05\% & 0.39\%\\
+sold on the book & \$9.48M & \$8.69M & \$8.18M & \$9.91M\\
+taken by the vault & \$7.81M & \$8.49M & \$10.66M & \$8.82M\\
+\bottomrule
+\end{tabular}}\par
+The cut-back removes the full-size sales of today's cooldown at the price of larger typical rounds, and in this earlier run on an earlier mark fills about 0.3\% further below $E$ (the final run: the paper). It helps only with a mark that follows the crash (\S\ref{var:p4d}: the vault inherits \$1.84M less): with today's lagging mark it sizes from overstated equity and leaves more for the vault. On the deep books of four oil and metals days (crude oil, Brent oil, silver, gold; 19--22 big positions) every rule moves the best price about 0.015\% per round (0.04\% at the 90th percentile) and the vault takes \$600k to \$750k either way; the cut-back needs fewer rounds. Its book cost is concentrated in thin, fast markets. Limit: the replayed book does not react, so impact is a lower bound.}
+
+%==========================================================================================
+\section{Packages}\label{sec:pkg}
+Each package combines a mark with restore-to-IM. Up to \S\ref{var:pk} they also carried the fair sweep (\S\ref{sec:vault}); on the three crashes it changes none of the numbers below. \emph{Faithful wash}: two margined attacker accounts trade \$10M or \$50M per 30\,s with each other at $+6\%$; today's mark moves 0.07 to 0.24\%.
+
+\subsection{Package: the mark of \S\ref{var:p4d} with restore-to-IM}\label{var:auto16}
+\st{sup}{not kept (272 extra stop orders on normal markets) \,·\, earlier run}{relayer + Hyperliquid}
+The first combination: $M$ from \S\ref{var:p4d}, \chg{\text{restore-to-IM}} liquidation, fair sweep.
+\res{Crash: \$10.98M inherited (today \$9.82M). Wrong prices: no takeover (today up to \$7.03M). Stuck feed: \$12.57M inherited (today \$14.01M). Normal markets: 272 stop orders fire that today's mark would not fire.}
+
+\subsection{Hold cap}\label{var:auto17}
+\st{rej}{rejected (no gain in any test) \,·\, earlier run}{relayer}
+While a hold lasts, the band's edge away from $E$ stays at the center the hold began from, $\chg{R_0}$.
+\res{Wrong prices as in the package; no gain in any test.}
+
+\subsection{Hold-start rule (30\,s)}\label{var:auto18}
+\st{sup}{not kept (a wash by the attacker starts a hold) \,·\, earlier run}{relayer}
+A hold may start only after a feed failure: $\chg{E \text{ moved} > d \text{ within } 30\,\text{s, or did not change for } 30\,\text{s}}$.
+\res{Wrong prices and stuck feed as in the package. A faithful wash lifts the mark 6.63\% (\S\ref{var:anch} later brings it to 0.50\%): the attacker's own trades start a hold.}
+
+\subsection{Hold-start rule (one update)}\label{var:auto19}
+\st{rej}{rejected (more accounts liquidated against a wall of bids) \,·\, earlier run}{relayer}
+The jump must happen $\chg{\text{between two consecutive updates}}$; a real crash spreads over several.
+\res{Against a faithful wall of bids: the largest lift of the mark falls to 4.85\% (from 5.92\%), but 37 accounts are liquidated (from 33).}
+
+\subsection{Trade price through the 150\,s average}\label{var:auto20}
+\st{rej}{rejected (a wash still lifts the mark 6.63\%) \,·\, earlier run}{relayer}
+$X^2_t = \D_t\big(\chg{\ema_{150\,\text{s}}(P)}\big)$, raw $P$ during a hold in one version.
+\res{A faithful wash still lifts the mark 6.63\%, as with the 30\,s rule. The average only slows the honest case.}
+
+\subsection{Today's formula outside feed failures}\label{var:auto21}
+\st{sup}{not kept (the book input still walks with an attacker) \,·\, earlier run}{relayer}
+Outside a hold the relayer publishes today's prices with the oracle unclamped; \S\ref{var:p4d}'s inputs only during a hold:
+\begin{equation}
+X^1_t = \D_t(\chg{E_t}),\quad X^2_t = \text{today's},\qquad (X^1,X^2) = \text{\S\ref{var:p4d}'s} \ \text{only while held}
+\end{equation}
+\res{Wrong prices: no takeover. A faithful wash still lifts the mark 1.97\% (the next variant brings it to 0.50\%): the book input still walks with the attacker.}
+
+\subsection{Book input anchored to the current external price}\label{var:anch}
+\st{sup}{not kept (replaced by later candidates) \,·\, earlier run}{relayer}
+The book input is clamped around $E_t$ instead of its own last value; a stuck feed (2 unchanged updates) can start a hold:
+\begin{equation}
+X^2_t = \clip\big(E_t + e_t,\ \chg{E_t(1\pm c)}\big)
+\end{equation}
+\res{A faithful wash now lifts the mark 0.50\% (from 1.97\%). Anchoring on the previous oracle instead gave 1.97\%.}
+
+\subsection{Feed-failure holds with a 0.5\% gap}\label{var:pv}
+\st{sup}{not kept (read a closed market's quiet feed as stuck) \,·\, earlier run}{relayer + Hyperliquid}
+After a single-update jump of $E$ by more than $d$, a hold needs xyz to disagree by only $\chg{c}$, and continues while it does.
+\res{Crash results as the package; wrong prices: no takeover; stuck feed: \$12.59M inherited (today \$14.01M); normal markets: no extra stop; a faithful wash lifts the mark 0.50\%. It failed on the held-out days: during the futures exchange's daily close it read the quiet feed as stuck, and a 4-minute wick on xyz liquidated 91 crude-oil and 79 Brent shorts that Hyperliquid left alone in reality.}
+
+\subsection{A closed market's quiet feed is not a failure}\label{var:pk}
+\st{sup}{replaced by \S\ref{var:core} \,·\, earlier run}{relayer + Hyperliquid}
+No frozen-feed hold inside the venue's published closures:
+\begin{equation}
+\text{frozen}_t = \big(E_t = E_{t-1} = E_{t-2}\big)\ \chg{\wedge\ t \notin \text{closures}}
+\end{equation}
+\res{On the days used to design the rules, identical to \S\ref{var:pv} for every account, in every test and attack. On the seven market-days held out at first (engine with margined attackers): 57 takeovers (today 106), \$1.26M inherited (today \$1.61M in this earlier run), 1{,}839 accounts liquidated in the order book (today 1{,}867; earlier run, and we could not establish whether it counts a trader once per market or once in all, which on these seven days differ by about 3.5\%). A wick while Alphabet's market is closed: no account hurt (today 2 to 14). Crude oil's daily close: 3 to 10 accounts hurt for pushes of 60\,s to 4\,min (today 7 to 147), but a \$5M push held 15\,min still hurts 55 (today 148), because the internal price follows the pushed book. Gold over the weekend: none hurt for pushes up to 4\,min, 17 at 15\,min (today 13 to 26).}
+
+\subsection{Hold the external price in daily breaks}\label{var:pb}
+\st{rej}{rejected (we prefer one rule for all closures) \,·\, earlier run}{relayer + Hyperliquid}
+The internal price only over weekends: $O_t = \chg{E_{\text{close}}}$ in a daily break.
+\res{Crude oil's daily close: 3 accounts hurt (today up to 148) at every push size and length (\$1 to 5M, 60\,s to 15\,min). Days without attack: the same as \S\ref{var:pk}. Rejected: we prefer one rule for the daily break and every other closure.}
+
+\subsection{Core package: \S\ref{var:pk} without the vault unwind}\label{var:core}
+\st{sup}{replaced by \S\ref{sec:lead} \,·\, earlier run}{relayer + Hyperliquid}
+The mark of \S\ref{var:pk} and restore-to-IM; \rem{\text{fair sweep}} removed (\S\ref{sec:vault}).
+\res{Earlier run. On the seven market-days held out at first: 57 takeovers (today 106), \$1.26M inherited (today \$1.61M), the same as \S\ref{var:pk}. Normal markets (this earlier candidate replayed on the final engine build): 4 accounts liquidated that today's rules would not liquidate, 1 extra stop. SK Hynix on July 27, the real ADL event, replayed (with the hold): the vault needs \$0 to avoid ADL, against \$1.43M under today's rules (its balance was about \$1.04M five days earlier, and ADL happened, as in reality), and \$1.04M to stay above its own maintenance margin (today \$2.64M).}
+
+\subsection{Walking external feed (a test of every package)}\label{var:auto22}
+\st{sup}{a test of the packages above, not a variant \,·\, earlier run}{relayer + Hyperliquid}
+A manipulated or broken $E$ walked 10\% away over 15\,s--5\,min and held 2\,min (Alphabet, Amazon, 6:30\,pm ET). 
+\res{Healthy positions handed to the vault, for a walk down / up: today \$300k to \$3.25M / up to \$50k; core package \$1.11 to 4.66M / up to \$360k, because both its inputs follow the external price, at Hyperliquid's 1\% per update instead of 0.5\%. No mark rule removes this (below): we think the defense belongs in how the external price is built (\S D of the paper).}
+
+\subsection{Divergence trigger}\label{var:auto23}
+\st{rej}{rejected (the mark belongs to whoever pushes xyz's book) \,·\, earlier run}{relayer}
+A hold may also start, at any speed, when xyz disagrees with $E$ by more than the maintenance-margin rate:
+\begin{equation}
+\text{hold} \Leftarrow \chg{|E_t-P_t| > \tfrac{1}{2\,\text{maxLev}}\,E_t\ \wedge\ |E_t-I_t| > \tfrac{1}{2\,\text{maxLev}}\,E_t}
+\end{equation}
+\res{A walking feed hands the vault nothing on walks up to 1\,min (core package: \$1.11 to 4.66M). But the mark then belongs to whoever pushes xyz: a faithful wash at $+6\%$ (\$5M per update) lifts it 14.43\% and hurts 72 accounts (core package: 0.50\%, 0 to 1 account); an attacker bidding 6\% above the mid lifts it 5.94\% (core: 0.50\%). xyz's own book is cheaper to push than the external market.}
+
+\subsection{Hold released only while xyz's price is stale}\label{var:auto24}
+\st{rej}{rejected with the trigger \,·\, earlier run}{relayer}
+A held center steps toward $E$ only while xyz has \chg{\text{no trade}} (count) or \chg{\text{less than its average volume}} (volume) in the last 30\,s.
+\res{The first version never stepped in practice (xyz's trade price reaches back without a time limit). Staleness measured by the number of trades can be kept alive with tiny trades; measured by volume it cannot. Rejected together with the divergence trigger.}
+
+\subsection{Corroborated speed}\label{var:auto25}
+\st{rej}{rejected (only delays a sustained walk) \,·\, earlier run}{relayer}
+The oracle jumps to $E$ only as far as xyz's book already is; beyond it, today's clamp:
+\begin{equation}
+O_t = \clip\big(E_t,\ \chg{\text{hull}[\,O_{t-1}(1\pm c),\ \text{mid}_t(1\pm c)\,]}\big)
+\end{equation}
+\res{It only delays a sustained walk: the oracle catches up within about 20 updates and the book input is anchored to the external price, so the mark makes the full walk ($-9.70\%$). The damage halves only on walks of 15 to 30\,s.}
+
+\subsection{An earlier candidate: a frozen \texorpdfstring{$E$}{E} is priced like a closed market}\label{sec:lead}
+\st{sup}{replaced by the paper's proposal (\S B); its not-live rule is kept \,·\, earlier run}{relayer + Hyperliquid (restore-to-IM)}
+The core package, plus one rule whenever $E$ is not live, scheduled or not: once $E$ is unchanged for 2 updates, the relayer prices the market with the capped closed-market oracle (\S C of the paper, $\kappa = 1\%$), and a frozen feed no longer starts a hold led by xyz's book:
+\begin{equation}
+E_t = E_{t-1} = E_{t-2}\ \Rightarrow\ O_t = O_{t-1} + \big(1 - e^{-\Delta t^*/\tau}\big)\,\clip\big(\text{mid}_t - O_{t-1},\ \pm 1\%\,O_{t-1}\big)
+\end{equation}
+\res{External price frozen for 10\,min in open hours, plus a faithful attacker. Bids 6\% above the mid: the mark rises 0.50\%, no account hurt (today 5.00\% and 19 accounts; core package 4.84\% and 19). A wash: 0.17\%, none hurt (core 4.81\% and 20). Crashes, quiet days, normal markets and wrong prices: identical to the core package. SK Hynix on July 27 replayed (earlier run, with the hold): the vault needs \$0 to avoid ADL (today \$1.43M; the proposal \$892k) and \$1.03M to stay above its own maintenance margin (today \$2.64M in this earlier run). Cost: a real crash that comes exactly while the feed is frozen is followed late. The alternative tested, a hold led by xyz whose book is checked at the depth $W_t$, stopped the wash (0.48\%) but not the bid push (4.84\%, 19 accounts).}
+
+\section{Vault unwind}\label{sec:vault}
+\st{sup}{not part of the proposal \,·\, earlier run}{Hyperliquid}
+Not part of the protection package. Today the vault is modeled selling 0.5\% of its inventory per update.
+
+\subsection{Fair sweep}\label{var:sweep}
+Each update the vault also sells to $\chg{\text{every resting bid at or above } O_t}$.
+\res{On the three crashes, with the mark of \S\ref{var:p4d} and the cut-back: the vault's inventory times the time it holds it falls to \$9.5M$\cdot$min (\$117.6M$\cdot$min without the sweep); takeovers unchanged. What the vault realizes when it sells is not reported.}
+
+\subsection{Larger clip}\label{var:clip}
+The vault sells $\chg{5\%}$ of its inventory per update.
+\res{Inventory times holding time \$10.3M$\cdot$min (\$117.6M$\cdot$min without it). What the vault realizes when it sells is not reported.}
+
+\end{document}

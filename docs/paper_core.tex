@@ -1,0 +1,592 @@
+% Core of mark_formulas.tex: one idea per page, written for a reader who has never seen the study.
+% Pages: summary, problems, one page per change, how they fit, the formulas side by side; then the tests and what they showed; costs; limits.
+% Numbers: docs/results/scorecard.md (final run of 2026-11-11) unless a page's box says otherwise.
+
+%======================================================================================== 1 summary
+\begin{center}
+{\LARGE\bfseries Protocol suggestions for xyz\par}
+\vspace{.5ex}
+{\normalsize\bfseries Changes trade.xyz and Hyperliquid could consider for stressed markets\par}
+\vspace{.9ex}
+{\large @ymsynn\par}
+{\small\texttt{ymsynnquant@gmail.com} \,·\, November 13, 2026\par}
+{\small Rule explorer: \href{https://ymsynn.github.io/xyz-backstop-study/}{\texttt{ymsynn.github.io/xyz-backstop-study}} \,·\, code and data: \href{https://github.com/ymsynn/xyz-backstop-study}{\texttt{github.com/ymsynn/xyz-backstop-study}}\par}
+\end{center}
+\vspace{-1ex}
+
+For every HIP-3 deployer, a position the order book cannot close goes to a backstop vault if the market allows cross margin; when it does not, or when the vault cannot take the position, profitable traders are closed out (ADL). On trade.xyz's markets, ADL closed \$85.2M of positions in 392 days. This paper suggests six changes to reduce potential ADL and improve how the backstop vault performs. The main one is the mark price (changes 1 and 2): two changes to what trade.xyz's \emph{relayer} (its price program) publishes, which could be computed beside production.
+
+\begin{center}\includegraphics[width=.6\textwidth]{figs/headline_crash.pdf}\end{center}
+
+\vspace{.6ex}
+{\small
+\begin{tabularx}{\textwidth}{@{}r>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{3.1cm}>{\raggedright\arraybackslash}p{2.6cm}@{}}
+\toprule
+ & Suggestion & Who would ship it & Serves\\
+\midrule
+1 & \textbf{Mark price.} Median of the external price, xyz's book and the anchor; a 30-second 5\% wrong price moved it 4.17\% today, 0.10\% & trade.xyz & \ptag{today}{ADL}, \ptag{today}{backstop loss}, \ptag{mute}{attacks}\\
+2 & \textbf{Closed market or quiet feed.} One capped rule, under which a short push moves the price slowly & trade.xyz & \ptag{mute}{attacks}\\
+\midrule
+3 & \textbf{Liquidation size.} With the new mark, cut a large position back to initial margin at once & Hyperliquid & \ptag{today}{backstop loss}\\
+4 & \textbf{Vault coverage.} Allow the vault in six more liquid markets & trade.xyz, with validator review & \ptag{today}{ADL}\\
+5 & \textbf{Vault capital floor.} A floor recomputed each morning from open positions & trade.xyz & \ptag{vault}{capital}\\
+6 & \textbf{External price.} Publish its age and sources; check overnight moves & trade.xyz & \ptag{mute}{attacks}\\
+\bottomrule
+\end{tabularx}}
+
+\textbf{What the tests show.} We replayed about 85 recorded \emph{market-days} under today's rules and under changes 1 to 3 together (\emph{the proposal}). ADL on five isolated-only markets falls (\$300.4k today, \$99.5k). In most tests the vault inherits more, but on the three earnings crashes together it needs less money to avoid ADL (\$462k, \$352k) and less capital (\$715k, \$589k); on Alphabet alone, more. The cut-back (3) helps only with the new mark (page~\pageref{sec:res-cut}). Costs: page~\pageref{sec:costs}.
+
+\foot
+\begin{words}
+\begin{tabularx}{\linewidth}{@{}>{\bfseries\raggedright\arraybackslash}p{3.0cm}X@{}}
+Mark price & What Hyperliquid uses to value positions and liquidate.\\
+External price ($E$) & The asset's own market price, fed in by trade.xyz.\\
+Anchor & A 30-minute average of $E$, pulled back toward the mark unless xyz's book lay between them.\\
+Takeover, inherited & The vault takes a position the book cannot close; it is then inherited.\\
+ADL; isolated-only & Profitable traders closed out; a market where the vault cannot take positions.\\
+\end{tabularx}
+\par\vspace{.3ex}{\small Formulas: page~\pageref{sec:formulas}; today's rules in full: \S\ref{sec:current}, page~\pageref{sec:current}; the proposal: \S\ref{sec:three}, page~\pageref{sec:three}.}
+\end{words}
+
+%======================================================================================== 2 problems
+\page{The problems, in the order we took them}{The frame for every page that follows}
+
+\textbf{Three problems, ranked:} when two goals pull apart the higher one wins; a different ranking would change some choices.
+
+{\renewcommand{\arraystretch}{1.12}
+{\small\begin{tabularx}{\textwidth}{@{}c>{\bfseries\raggedright\arraybackslash}p{2.4cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{4.3cm}@{}}
+\toprule
+ & Problem & In plain words & How this paper measures it\\
+\midrule
+\ptag{today}{1} & ADL & Profitable traders closed out because nothing else absorbs a failing position & ADL; money to avoid ADL\\
+\ptag{today}{2} & Backstop loss & The vault takes over positions already worth less than it pays & Inherited; capital needed\\
+\ptag{vault}{3} & Too little capital & The vault holds less than its positions could need & Today's need against the balance\\
+\bottomrule
+\end{tabularx}}}
+
+\textbf{What ADL comes down to.} Two cases only: the vault is not allowed in the market, or it runs out of money. With enough capital a market the vault serves has no ADL, as the record shows (page~\pageref{sec:adl}); so the mark's part is to lower the money the vault needs to avoid ADL, the measure we report.
+
+\textbf{Two conditions we held every change to.}
+\begin{itemize}[leftmargin=1.3em,itemsep=.4ex,topsep=.3ex]
+\item \textbf{It should not handicap users:} a mark close to today's on a normal day, no leverage cut, no rule that depends on the account.
+\item \textbf{An attack should do less harm than today, and never more.} Attacks are replayed with real, margined accounts, and we measure the harm to others. The proposal meets this in most tests, not all (page~\pageref{sec:costs}). They are the classic attacks, alone or combined; a passed test is not a proof of safety.
+\end{itemize}
+
+\vspace{1ex}
+\textbf{How to read the pages that follow.} One page per idea, its title the message; on each change page the Today / Suggested lines give the rule. Charts: today's rules orange, the proposal blue, the vault green, July 27 dark red, the proposal's mark with today's sizing purple; teal and gold where neither rule set is compared, gray only for context. trade.xyz's \emph{relayer} is the program that sends its prices to Hyperliquid. The external price, or \emph{feed}, is \emph{live} while its venue is open and its value changes, \emph{not live} when the venue is closed or the value repeats (\emph{quiet}; \emph{stuck} when frozen on purpose in a test). When it is not live, xyz prices the market from its own book: the \emph{internal price}, which must stay within the \emph{discovery bound}, a band of one over the market's maximum leverage around the last external price. \emph{Money to avoid ADL} keeps the vault's account above zero; \emph{capital the vault needs} keeps it above its maintenance margin. A takeover \emph{below the external price} is already worth less than zero at that price. A \emph{walk} moves the external price away step by step; a \emph{push} is a margined attacker buying or selling on xyz's book to move it, its size being the attacker's capital. A \emph{replay} reruns a recorded day under a given set of rules. Pages: every rule on one page \pageref{sec:formulas}, problems \pageref{sec:adl}--\pageref{sec:lag}, changes \pageref{sec:vote}--\pageref{sec:feed} (the mark first), how they fit \pageref{sec:steps}, tests from \pageref{sec:tests}, costs \pageref{sec:costs}, limits \pageref{sec:limits}. Times UTC; US sessions in ET.
+
+\textbf{What it costs, in brief} (today first; in full on page~\pageref{sec:costs}). In most tests the vault inherits more; the capital and money to avoid ADL that come with it fall on the three crashes together (\$715k, \$589k; \$462k, \$352k) and rise on Alphabet's (\$329k, \$419k; \$185k, \$219k). When a venue is closed the mark can sit above xyz's book for hours (SK Hynix, July 27: up to 7.03\%). A walked external price with a push on xyz's book does as much harm as today or more (\$15.5M liquidated, \$16.0M). Change 3 needs a Hyperliquid change and alone leaves the vault more (\$8.72M, \$9.32M).
+
+\par{\small\color{mute}Not reported: the vault's profit or loss (it depends on how the vault sells what it inherits). No competitor's price enters the mark; the order book is held as recorded.\par}
+
+%======================================================================================== 3 formulas
+\page{Every rule on one page: today's formulas, and what the suggestions change}{Reference \,·\, today's rules as reconstructed from the chain \,·\, \textcolor{prop}{\textbf{blue}}: differs from today \,·\, number: the change}\phantomsection\label{sec:formulas}
+
+{\footnotesize\renewcommand{\arraystretch}{1.12}\setlength{\tabcolsep}{4pt}
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{2.0cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{3.3cm}@{}}
+\toprule
+ & \textbf{Today} & \textbf{Suggested} & \textbf{What changes}\\
+\midrule
+Oracle, feed live \ptag{mute}{(1)} &
+$O_t = \D_t\big(\clip(E_t,\ O_{t-k}(1\pm c))\big)$ &
+$O_t = \nw{\D_t(E_t)}$ &
+The 0.5\% limit per update is removed\\
+First price trade.xyz publishes \ptag{mute}{(1)} &
+$X^1_t = \D_t\big(\clip(O_t,\ M_{t-1}(1\pm c))\big)$ &
+$X^1_t = \nw{V_t}$, with\newline $\nw{V_t = E_t}$ if the feed is live, else $\nw{O_t}$ &
+It becomes the feed's vote\\
+Second price trade.xyz publishes \ptag{mute}{(1)} &
+$X^2_t = \D_t\big(\clip(E_t + e_t,\ H_t)\big)$,\newline $H_t$: the range spanned by $O_{t-k}(1\pm c)$ and $X^2_{t-k}(1\pm c)$ &
+$X^2_t = \nw{A_t}$, from\newline
+$\nw{\tilde A_t = A_{t-1} + \big(1 - e^{-\Delta t/\tau}\big)(V_t - A_{t-1})}$;\newline
+$\nw{A_t = \tilde A_t}$ if $B_{t-1}$ was strictly between $V_{t-1}$ and $A_{t-1}$, else\newline $\nw{A_t = \clip\big(\tilde A_t,\ [V_t, M_{t-1}]\big)}$ &
+It becomes the anchor: a 30-minute average of the feed's vote\\
+Mark\newline (Hyperliquid) &
+$M_t = \clip\big(\med(X^1_t, X^2_t, B_t),$\newline \hspace*{2.6em}$M_{t-1}(1\pm 1\%)\big)$ &
+$M_t = \clip\big(\med(\nw{V_t}, \nw{A_t}, B_t),$\newline \hspace*{2.6em}$M_{t-1}(1\pm 1\%)\big)$ &
+Hyperliquid's formula unchanged; new inputs\\
+Feed not live \ptag{mute}{(2)} &
+in closures or a data gap:\newline $O_t = O_{t-1} + \big(1 - e^{-\Delta t^*/\tau}\big)\,\times$\newline \hspace*{2.6em}$(\text{mid}_t - O_{t-1})$ &
+in closures \nw{or when $E_t = E_{t-1} = E_{t-2}$}:\newline
+$O_t = O_{t-1} + \big(1 - e^{-\Delta t^*/\tau}\big)\,\times$\newline \hspace*{2.6em}$\nw{\clip\big(\text{mid}_t - O_{t-1},\ \pm\kappa\,O_{t-1}\big)}$ &
+Also when the feed stops; the pull toward the book is capped\\
+Liquidation\newline (Hyperliquid) \ptag{mute}{(3)} &
+below MM, above \$100k: a first 20\%, then full size during a 30\,s cooldown &
+below MM, above \$100k, at every update:\newline $\nw{\Delta q = \Big(1 - \dfrac{\text{equity}}{\text{IM}}\Big)\,|q|}$ &
+Restores IM at max leverage (about half at first), no wait\\
+Backstop and ADL &
+below $\tfrac23$\,MM the vault takes the position where allowed; elsewhere ADL once equity $<0$ &
+the same &
+Nothing\\
+Where the vault is allowed in \ptag{mute}{(4)} &
+22 markets; 98 are isolated-only &
+\leavevmode\nw{six more}: listed underlying, no 50\% day, largest daily move $\le 35\%$, median volume $\ge$ \$8.0M a day &
+On those six markets the vault would stand before ADL\\
+Vault capital \ptag{mute}{(5)} &
+none published that is tied to the positions &
+$\nw{C(\mathcal{P}, r) = \sum\limits_{\text{taken}} \tfrac{|q|\,P'}{2\,\text{maxLev}} - \sum\limits_{\text{taken}} \text{eq}'}$ &
+A floor to discuss: the ten-year level of $C$, recomputed daily\\
+External price $E$ \ptag{mute}{(6)} &
+no age published; derivation not documented for US stocks; overnight: Blue Ocean ATS &
+\leavevmode\nw{age published}; \nw{sources stated per session}; a minimum size for what moves it overnight; moves checked before publishing &
+The price states how old it is, meant to be harder to walk\\
+\bottomrule
+\end{tabularx}}
+
+\foot
+\begin{exact}[Symbols]
+{\footnotesize\renewcommand{\arraystretch}{1.0}\setlength{\tabcolsep}{4pt}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{1.35cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{1.25cm}>{\raggedright\arraybackslash}X@{}}
+$t$ & one relayer update, about every 3\,s & $c$ & 0.5\%, today's limit per update\\
+$k$ & read lag in updates, $k \ge 1$ & $d$ & $1/\text{maxLev}$ for most markets\\
+$E_t$ & external price & $\D_t(x)$ & $\clip\big(x,\ E_t(1\pm d)\big)$, discovery bound; the anchor is exempt\\
+$B_t$ & xyz's book price, $\med(\text{bid}_t, \text{ask}_t, \text{last}_t)$, computed by Hyperliquid & $\kappa$ & 1\%, cap on the pull toward xyz's book\\
+$O_t$ & oracle price published by trade.xyz & $\tau$ & 30\,min, averaging time\\
+$M_t$ & mark price & $\Delta t^*$ & $\min(\Delta t, \tau/10)$\\
+$V_t$ & the feed's vote & $[a,b]$ & the range between $a$ and $b$\\
+$A_t$ & anchor; $A_0 = E_0$, never restarted & IM, MM & initial and maintenance margin; MM $= \tfrac12$\,IM at maximum leverage\\
+$e_t$ & 150\,s average of $\text{mid} - E$ & Feed live & venue open and $E$ changed in one of the last two updates\\
+$q$ & position size & $C(\mathcal{P},r)$ & vault capital for positions $\mathcal{P}$, move $r$: $P' = P(1+r_m)$, taken if $\text{eq}' < \tfrac23\,\text{MM}'$\\
+$X^1_t, X^2_t$ & the two mark inputs trade.xyz publishes & mid & midpoint of xyz's best bid and ask\\
+$\tilde A_t$ & anchor before its correction step & $E_{\text{last}}$ & latest external price received\\
+$\Delta t$ & time since the previous update & maxLev & the market's maximum leverage\\
+\mbox{eq$'$/MM$'$} & equity and maintenance margin after the move $r$ & $H_t$ & range of today's second-input clamp\\
+\end{tabularx}}
+\par\vspace{.2ex}Documented: the median, the 150\,s average (of mid $-$ oracle), the 0.5\% clamp, a bound that re-anchors (not modeled in the replay); read from the chain: $k$, the clip to $M_{t-1}$, $H_t$, the second input on mid $-E$, the bound on inputs. mid stands in for the impact price, so today's closed-market pushes may be overstated.
+\end{exact}
+
+%======================================================================================== 3 ADL
+\page{Most ADL happened before the vault entered the market, the rest mostly on one day}{Problem 1: ADL}\phantomsection\label{sec:adl}
+
+Where did ADL happen on xyz? We read the full record of fills. In 392 days, 475 positions fell too far to be closed in the order book: the vault took 177, and 298 ended in ADL. Separately, on two days the vault took positions and was then itself auto-deleveraged (\$25.58M on July 27, \$1.53M on silver, March 5). Together, all ADL came to \$85.2M.
+
+68\% of that ADL was on markets where the vault had not yet taken a single position (the first takeover standing in for the switch date, so the share could move). On \emph{isolated-only} markets the vault cannot hold a position, so the backstop is ADL (the first case of page~2). Brent oil (\$33.3M) and crude oil (\$9.9M) had all their ADL before the vault's first takeover there, and none since.
+
+trade.xyz publishes switch dates for five markets (June 24, among them SpaceX, SK Hynix, crude oil and SanDisk). For the rest we read the setting from the vault's first takeover, so on this page ``entered'' means the vault's first takeover on the chain, which can come after the switch. Most of these markets have the vault today. The ones still isolated-only had \$13.45M of ADL (15.8\%), \$9.34M of it on the Brazil fund EWZ; the chart's \$14.3M is slightly larger: it also counts markets where the vault is allowed but has not yet taken a position. Our replays cover \$300k of it and July 27, not Brent, crude oil or EWZ.
+
+\begin{center}\includegraphics[width=\textwidth]{figs/adl_timeline.pdf}\end{center}
+\vspace{-1.5ex}
+
+Most of the rest is one day: SK Hynix on July 27 (\$25.6M, 30\% of the total; the chart's SK Hynix row, \$25.4M, leaves out \$160k on a second SK Hynix market). There the vault was allowed in but its balance was not enough: what we read as a wrong price at the reopening dragged the mark down, and in our replay the vault needed \$1.43M against a balance of about \$1.04M five days earlier (page~\pageref{sec:skhx2}). The remaining \$1.5M is silver on March 5, a day when the vault did take a position and ADL happened all the same.
+
+\foot
+\begin{exact}[The rule, as replayed]
+On markets where the vault is allowed in (cross margin enabled), a position whose equity falls below two thirds of its maintenance margin leaves the order book: the vault takes it at the bankruptcy price, where its equity is zero. On isolated-only markets the order book keeps selling, and the position is auto-deleveraged against profitable traders only once its equity is negative, as trade.xyz's documentation describes; in our replay, at the previous update's mark, as on the chain. Counts: \S\ref{sec:cover}.
+\end{exact}
+
+%======================================================================================== 4 lagging mark
+\page{In a crash, today's mark arrives about a minute late}{Problem 2: backstop loss}\phantomsection\label{sec:lag}
+
+On October 28 Alphabet reported earnings after the close and its share price fell about 7\% within a minute. On xyz, the prices trade.xyz publishes may move only 0.5\% toward the external price at each update, about every three seconds, so for the next minute the mark stayed far above what the share was really worth.
+
+While the mark is too high, positions that are already lost are not liquidated: on paper they still look solvent. When the mark finally catches up they can be far past the point where the order book could close them, and go straight to the vault.
+
+\begin{center}\includegraphics[width=\textwidth]{figs/crash_mark.pdf}\end{center}
+\vspace{-1.5ex}
+
+The lower panel shows the gap: today's mark stays up to 4.8\% above the external price for about a minute. On the three crashes replayed, 814 of 819 takeovers reach the vault already below the external price (worth less than zero at that price). Change 1 (page~\pageref{sec:vote}) brings the mark down with the external price; whether that lightens the vault's load differs from crash to crash (page~\pageref{sec:res-mark}).
+
+\foot
+\begin{exact}[Today's rule, as we reconstruct it from the chain record]
+\emergencystretch=1.5em\hbadness=1500 The relayer publishes an \emph{oracle} price (its own copy of the external price, used for funding), $O_t = \D_t\big(\clip(E_t,\ O_{t-k}(1\pm c))\big)$ with $c = 0.5\%$ per update, and two mark inputs, the first the oracle clipped around the previous mark on the chain, the second the external price plus the book's premium; Hyperliquid takes the median of those two and xyz's book price. The documentation gives the median and the 0.5\% clamp; the read lag $k$, the clip around the previous mark and the bound on the inputs are what the chain shows (symbols: page~\pageref{sec:formulas}). Full rules: \S\ref{sec:current}.
+\end{exact}
+
+%======================================================================================== 5 change 1
+\page{Change 1: the mark becomes the middle of three votes; in the tests a short wrong price barely moved it, a lasting one moves it slowly}{Serves problem 2 (backstop loss), in the replay of July 27 less money to avoid ADL (indeterminate, page~\pageref{sec:skhx2}), and the condition ``attacks do less harm'' \,·\, a change for trade.xyz}\phantomsection\label{sec:vote}
+
+\changerule{$M_t = \clip\big(\med(X^1_t, X^2_t, B_t),\ M_{t-1}(1\pm 1\%)\big)$, where the oracle moves toward the external price $E$ by at most $0.5\%$ per update and the first input follows the mark}
+{$M_t = \clip\big(\med(\nw{V_t},\ \nw{A_t},\ B_t),\ M_{t-1}(1\pm 1\%)\big)$: the feed's vote $\nw{V_t}$ (the external price itself) and the anchor $\nw{A_t}$ (its 30-minute average); Hyperliquid's formula is unchanged}
+
+At every update the mark is the middle one of three votes. They are not independent: the anchor is tied to the feed and the last mark, and a feed that is not live votes with xyz's book. \textbf{In the three crashes replayed, the crash was followed within seconds:} the external price and xyz's book fell together and two votes agreed. The design assumes the book follows a real move; if not, the mark follows at the anchor's pace, slower than today. \textbf{In the tests a short wrong price was outvoted:} it moves one vote, the book stays, and the anchor follows only at its 30-minute pace, so a lasting one moves the mark slowly. One wrong price followed by no further change is not outvoted. After two unchanged updates the feed counts as not live, and the internal price starts from the wrong value (page~\pageref{sec:notlive}); overnight, when the feed rarely changes, this is the ordinary case. \textbf{A push of xyz's book} is outvoted while the feed and the anchor agree.
+
+\begin{center}\includegraphics[width=.68\textwidth]{figs/mark_changes.pdf}\end{center}
+
+\textbf{The correction step} pulls the anchor back between the feed's vote and the last mark, unless xyz's book lay between them; then it can lag (Alphabet crash: 13 updates, up to 3.66\% above the mark). Its cost: if xyz's book dips while a wrong price lasts, the mark keeps much of the dip (Alphabet, 20\% wrong price and a 45-second \$5M push: after two minutes 16.14\% today, 9.32\% with the step, 1.57\% without). Its use: a \$5M push held five minutes in a crash needs \$899k of capital today, \$840k with the step, \$1.188M without (\S\ref{sec:three}, page~\pageref{sec:three}).
+
+\foot
+\begin{exact}
+Feed's vote: $V_t = E_t$ if the feed is live (the venue is open and $E$ changed in at least one of the last two updates), else $O_t$ (change 2); with the feed live $O_t = \D_t(E_t)$.
+Anchor: $\tilde A_t = A_{t-1} + \big(1 - e^{-\Delta t/\tau}\big)(V_t - A_{t-1})$, $\tau = 30$\,min, $A_0 = E_0$; $A_t = \tilde A_t$ if xyz's book price $B_{t-1}$ was strictly between $V_{t-1}$ and $A_{t-1}$, else $A_t = \clip\big(\tilde A_t,\ [V_t, M_{t-1}]\big)$. The anchor is never restarted and is exempt from the discovery bound; it is one of the two published inputs. Inputs and open points: \S\ref{sec:three}, page~\pageref{sec:three}.
+\end{exact}
+
+%======================================================================================== 6 change 2
+\page{Change 2: when the feed is not live, a short push moves the mark slowly; one held for hours still moves it}{Serves the condition ``attacks do less harm'' \,·\, a change for trade.xyz}\phantomsection\label{sec:notlive}
+
+\changerule{in scheduled closures or after a data gap (15\,s for Korean stocks, 30\,s for FX): $O_t = O_{t-1} + \big(1 - e^{-\Delta t^*/\tau}\big)(\text{mid}_t - O_{t-1})$, the book's mid standing in for the documented impact price (the fill price of a set order size)}
+{in closures \nw{or when $E$ has not changed for two updates}: $O_t = O_{t-1} + \big(1 - e^{-\Delta t^*/\tau}\big)\,\nw{\clip\big(\text{mid}_t - O_{t-1},\ \pm\kappa\,O_{t-1}\big)}$, $\kappa = 1\%$, $\tau = 30$\,min}
+
+When the asset's own market is closed (weekends, the futures' daily break, the Korean night), xyz prices the market from its own book. Today that internal price is already a 30-minute average of the book with no cap, but the mark's two other inputs follow the book at once, so a push of a few minutes drags the mark and liquidates other traders.
+
+The change: one rule whenever the feed is not live, closure or repeated value. The internal price's pull toward the book is capped (about 2\% per hour), and it becomes the feed's vote of change 1, so no input follows the book at once. Overnight this is the normal regime; in regular hours it is on for 3 to 5 seconds at a time (\S\ref{sec:three}, page~\pageref{sec:three}).
+
+\begin{center}\includegraphics[width=.87\textwidth]{figs/closed_attacks.pdf}\end{center}
+\vspace{-1.5ex}
+
+Each push is measured from the path without it (crude oil: $-0.32\%$ without, $+0.48\%$ with, a gap of 0.81\% as measured). After the push the proposal's mark returns more slowly than today's. \textbf{Only with change 1:} alone under today's mark the cap leaves a push as effective as today (6.56\%, 6.48\%), since the mark's other inputs still follow the book. \textbf{What it does not stop:} a push kept up for hours moves the mark as far as today's does in five minutes. trade.xyz re-anchors the discovery bound near its edge (``resets''); our replay has none under either rule set, nor does change 2 as written; they could be kept.
+
+\foot
+\begin{exact}
+Whenever the market is in a scheduled closure, or $E_t = E_{t-1} = E_{t-2}$: $O_t = O_{t-1} + \big(1 - e^{-\Delta t^*/\tau}\big)\,\clip\big(\text{mid}_t - O_{t-1},\ \pm\kappa\,O_{t-1}\big)$, $\kappa = 1\%$, $\tau = 30$\,min, with the mark formula of change 1. When the feed stops being live, the internal price starts from the last external price, even one that has just printed (as at 23:00 on July 27), and stays within $E_{\text{last}}(1\pm d)$. If the external price changes inside a scheduled closure, the bound moves but the internal price does not restart (as at 17:17 on July 27). $\kappa = 1\%$ is Hyperliquid's own per-update limit, as close at reopening as today on 510 closures (\S\ref{sec:closed}).
+\end{exact}
+
+%======================================================================================== 7 change 3
+\page{Change 3: cut a large position back to its initial margin at once; it helps only with change 1, and the vault still inherits more than today}{Serves problem 2 (backstop loss) \,·\, needs a Hyperliquid change}\phantomsection\label{sec:cutback}
+
+\changerule{below maintenance margin and above \$100k: a first order for $20\%$ of $|q|$, then full-size orders during a 30\,s cooldown}
+{below maintenance margin and above \$100k, at \nw{every update}: sell $\nw{\Delta q = \big(1 - \text{equity}/\text{IM}\big)\,|q|}$, enough to restore the initial margin IM at the market's maximum leverage}
+
+Hyperliquid's documentation says a position above \$100k that falls below its maintenance margin first has 20\% sold. If it is still below within the next 30 seconds, the rest is sold in full. As we reconstruct it, after 30 seconds a new round starts with 20\% again. (trade.xyz's page describes only full-size orders.) However far the price has moved, the first sale is small; if the position keeps losing, what is left is then closed in one block, often into a thin book.
+
+The change: at every mark update, sell exactly what brings the position back to the initial margin at the market's maximum leverage. When a position first crosses its margin requirement today's rule sells a fifth of it, this one about half: more is sold early, while the book can still take it, and less is left for when the price falls.
+
+\begin{center}\includegraphics[width=.92\textwidth]{figs/cutback_how.pdf}\end{center}
+\vspace{-1.5ex}
+
+Both are replayed here with the proposal's mark. xyz's book price holds for about half a minute and then falls. By then today's sizing has sold 36\% of the position and the cut-back 76\%; today's sizing then sells 58\% in one block, 3.8\% below the mark. Part of that fall is the liquidations themselves. This is the clearest of the 23 large positions, not a typical one.
+
+\textbf{Why only after change 1.} With today's mark, which lags a crash, the cut-back is sized from a position value that is too optimistic, and it leaves the vault more, not less. Even with change 1, on the 23 largest positions the vault inherits more than today (\$8.72M today, \$9.78M; change 1 alone, \$11.76M), while isolated-only ADL falls (\$300.4k, \$99.5k). What the tests showed, and what the cut-back costs: page~\pageref{sec:res-cut}.
+
+\foot
+\begin{exact}
+$q_{\text{sold}} = \min\{q : \text{equity} \ge \text{IM}(q_{\text{left}})\}$ at each mark update, for positions above \$100k, with no cooldown; in closed form $\Delta q = (1 - \text{equity}/\text{IM})\,|q|$. Other targets (maintenance margin, 1.5 and 3 times it, all sizes) left the vault more, or forced more liquidation; details in the companion note.
+\end{exact}
+
+%======================================================================================== 8 change 4
+\page{Change 4: a candidate list of six markets that clear the bar of those the vault already serves}{Serves problem 1 (ADL) \,·\, a trade.xyz setting, reviewed by Hyperliquid's validators}\phantomsection\label{sec:five}
+
+\changerule{the vault may take positions in 22 markets; the other 98 are isolated-only, with ADL as their only backstop}
+{the vault may also take positions in \nw{Robinhood, MicroStrategy, Nebius, AMD, the Korea fund EWY and Samsung} (28 markets)}
+
+Hyperliquid's HIP-3 documentation says validators accept the vault only on assets with enough liquidity, a reliable external price and resistance to manipulation; the switch is irreversible. It adds to what the vault may carry, within each market's open-interest cap, and traders would notice one thing: cross margin becomes the default, and a backstop takeover of a cross account moves all its cross positions to the vault.
+
+It gives two thresholds: a 50\% move in a day triggers a review of trade.xyz's stake, and 50\% daily moves more than once a month make a market ineligible. For the rest we take the weakest of the 22 markets the vault serves today: a listed underlying, at least Amazon's trading volume on xyz (median \$8.0M a day over the 209 days for which we have hourly prices), no 50\% day, and no day larger than SanDisk's largest (35\%; detail: \S\ref{sec:cover}). Six of the 98 isolated-only markets pass: Robinhood, MicroStrategy, Nebius, AMD, the Korea fund EWY and Samsung, together a quarter of the open positions on isolated-only markets. EWY and Samsung are Korean, like SK Hynix.
+
+\begin{center}\includegraphics[width=.7\textwidth]{figs/eligibility.pdf}\end{center}
+\vspace{-1.5ex}
+\vspace{1ex}
+\textbf{What the chart shows.} Each circle is one market (area: open interest); the six that clear every bar are the ones change 4 names.
+
+\par{\small\color{mute}Sources: market list read from Hyperliquid on November 2, 2026; volume and daily moves over 209 days; detail: \S\ref{sec:cover}.\par}
+%======================================================================================== 8b ceiling
+\page{Change 4's case is forward-looking: the six markets cut an upper bound of ADL by up to 45\%; in the one replay, \$64k to \$60k}{Serves problem 1 (ADL) \,·\, what change 4 would and would not have done}\phantomsection\label{sec:ceiling}
+
+The chart applies each of xyz's five worst real 1-hour and 4-hour moves to today's open positions as one instant move. For each it shows the ADL on isolated-only markets today, and with the vault allowed in the six markets. The reduction runs from none to 45\% (\$4.11M to \$2.25M, July 29), depending on the window. It assumes the vault can absorb what it would inherit; its capital for the six was not computed (the only indication: with cross margin on every isolated-only market, the 4-hour worst case rises from \$3.0M to \$5.6M, \S\ref{sec:cover}).
+
+\begin{center}\includegraphics[width=.7\textwidth]{figs/six_markets.pdf}\end{center}
+\vspace{-1.5ex}
+
+\textbf{The chart is a ceiling, not an estimate:} in a real hour the book liquidates most positions before ADL is reached. On November 5, the one such day we replayed, ADL on isolated-only markets was \$154k under today's rules (\$154k on the chain), against \$10.0M to \$28.0M in that day's bars; under the proposal it was \$64k, and \$60k with the vault also in the six markets.
+
+\textbf{This change would not have prevented the ADL on record:} the six had \$20.7k of the \$85.2M. Most fell on markets the vault serves today, and most of the rest on EWZ (page~\pageref{sec:adl}), which does not clear the bar.
+
+\par{\small\color{mute}Sources: open positions and price history of xyz; the November 5 replay of 33 markets: page~\pageref{sec:users}; detail: \S\ref{sec:cover}.\par}
+
+%======================================================================================== 9 change 5
+\page{Change 5: a capital floor; today's ten-year level, \$1.85M, is about what the vault holds and would not have covered July 27}{Serves problem 3 (too little capital) \,·\, a suggestion to trade.xyz, not a protocol rule}\phantomsection\label{sec:capital}
+
+\changerule{no published rule ties the vault's size to the positions it backs; it holds \$1.84M}
+{a \nw{floor to discuss}: at least the once-in-ten-years value of \nw{$C(\mathcal{P}, r)$}, the capital to carry what the vault would take after a move $r$ of all markets, \nw{recomputed every morning}; more is trade.xyz's choice}
+
+How much the vault holds is trade.xyz's decision, so we offer only a lower bound. We found no published rule. The suggestion: each morning, move the markets, see which positions the vault would have to take, and add up the margin it would need to carry them.
+
+\textbf{The method.} The left panel moves every market by the same amount at once. The right panel applies each of about 5{,}000 real hours of xyz's 120 markets (209 days) to today's positions, all markets together; each day keeps its worst hour. A standard extreme-value curve (a generalized Pareto, the method behind ``100-year flood'' estimates: \href{https://doi.org/10.1111/j.2517-6161.1990.tb01796.x}{\textcolor{prop}{Davison and Smith, 1990}}; \href{https://doi.org/10.1007/978-1-4471-3675-0}{\textcolor{prop}{Coles, 2001}}) is fitted to the largest 15\% of those 209 daily figures, about 31 points, and read at the level exceeded once in ten years; the whiskers are the 90\% range over 500 refits on resampled days. This is an estimate, not a tested result: with 31 points no significance test can support a ten-year level. A backtest fitted on the first 125 days predicted 0.8 days above \$500k in the next 84; there were 3, a gap with about a 5\% chance if the curve were right. In the tail it errs low.
+
+\begin{center}\includegraphics[width=.68\textwidth]{figs/capital.pdf}\end{center}
+\vspace{-1.5ex}
+
+\textbf{What it gives today, as an illustration.} The once-in-ten-years need is \$1.85M (range \$830k to \$5.1M), close to the \$1.84M the vault holds. The ten-year floor would not have covered July 27. That day the vault needed \$2.60M to carry what it inherited under today's rules (\$1.43M only to avoid ADL, page~\pageref{sec:skhx2}). The model moves prices in one instant, so it leaves out crashes driven by the path of the mark; and it is fitted to each day's worst hour, so xyz's worst real 4-hour move, which on today's positions needs \$3.0M, lies beyond it. What we suggest is the method, as a floor to discuss with its range, not these figures: the floor firms up as the history grows, and trade.xyz may hold a longer history.
+
+\foot
+\begin{exact}
+$C(\mathcal{P}, r) = \sum_{\text{taken}} \frac{|q|\,P'}{2\,\text{maxLev}} - \sum_{\text{taken}} \text{eq}'$, with $P' = P(1+r_m)$ ($r_m$: the move of market $m$) and a position taken when $\text{eq}' < \tfrac23\,\text{MM}'$: the capital for the vault to stay above its own maintenance margin after an instant move $r$ of all markets. Positions: 100{,}512, as of October 30, 2026; the vault's \$1.84M, November 2. Backtest, worst cases and limits: \S\ref{sec:cover}.
+\end{exact}
+
+%======================================================================================== 10 change 6
+\page{Change 6: the external price is often unchanged overnight; three items would make it easier to check}{Serves the condition ``attacks do less harm'' \,·\, trade.xyz's price pipeline}\phantomsection\label{sec:feed}
+
+\changerule{one published external price $E$, with no age; for US stocks trade.xyz's documentation names one venue for the overnight session, Blue Ocean ATS (an alternative trading system for US stocks at night), and does not say how the price is computed}
+{$E$ \nw{published with its age} and \nw{what it is built from in each session}; overnight, \nw{a minimum size} for what moves it; \nw{a move checked} against trade.xyz's other sources before it is published, if this is not already done}
+
+How much of the defense against a wrong external price lies in the feed itself? With change 1 a manipulated external price moves the mark by itself only slowly (after 15 minutes of a 20\% error: 16\% at once today, 7.92\%). It is still one vote of three, and an attacker who walks it needs only one more, xyz's book, cheap to push on every market we measured (page~\pageref{sec:attacks}). We think the main defense lies in how the external price is built.
+
+What the record shows is that the external price is often unchanged from one update to the next. Overnight, a session for which trade.xyz's documentation names one venue (Blue Ocean ATS), the published price is unchanged on most updates: on half of the market-nights it is unchanged on more than 78\% of updates (74.9\% of all overnight updates taken together). In regular hours the same figure is 30\%. An unchanged price may simply mean no new trade or quote: for US stocks how the price is computed and filtered is not documented, so we judge it only by what the chain record shows. For indices, commodities, FX and non-US stocks the documentation does give the derivation, so item 1 below (stating what the price is built from) is partly in place there.
+
+\begin{center}\includegraphics[width=.66\textwidth]{figs/feed_age.pdf}\end{center}
+\vspace{-1.5ex}
+
+\textbf{Three items,} some perhaps already in place.
+\begin{enumerate}[leftmargin=1.5em,itemsep=.3ex,topsep=.3ex]
+\item \textbf{Publishing the age of the price} with every update (a field or a document), and stating what it is built from in each session. Change 2 treats an unchanged price as not live; an explicit age would make that exact.
+\item \textbf{Requiring a minimum size for what moves the overnight price,} if that is not already the case. For US stocks we do not know how the price is computed, so we cannot tell whether a small trade can move it today.
+\item \textbf{Checking a move against the other sources trade.xyz draws on before publishing it,} if this is not already done, and holding a move that nothing else confirms.
+\end{enumerate}
+
+\par{\small\color{mute}Sources: 76 US-listed names, October 20, 21, 28 and 29: 296 market-days per session (72 markets on four days, 4 on two); walks: page~\pageref{sec:attacks}.\par}
+
+%======================================================================================== 11 steps
+\page{The changes could ship in steps: 1 and 2 together, the cut-back after them, 4 with the capital it needs, 5 and 6 at any time}{How the suggestions fit together}\phantomsection\label{sec:steps}
+
+The six changes are not a single package to accept or refuse whole. They can be taken in steps, or in part.
+
+{\normalsize\renewcommand{\arraystretch}{1.25}
+\begin{tabularx}{\textwidth}{@{}r>{\raggedright\arraybackslash}p{4.6cm}>{\raggedright\arraybackslash}p{2.4cm}>{\raggedright\arraybackslash}X@{}}
+\toprule
+ & Change & On its own? & Why\\
+\midrule
+1 & Mark is the middle of three votes & With 2 & Change 1 was never replayed with today's internal price\\
+2 & One rule when the price is not live & Only with 1 & Alone, under today's mark, a push lifts the mark as much as today (6.56\% today, 6.48\%); with change 1 it supplies the feed's vote\\
+3 & Cut-back, not today's sizing & After 1 & With today's mark it leaves the vault more\\
+4 & A candidate list of six markets for the vault & Yes, with capital & A market setting, but the vault's capital for the six was not computed (change 5)\\
+5 & A floor for the vault's capital & Yes & A suggestion to trade.xyz, not a protocol rule\\
+6 & External price: age, sources, minimum size, cross-check & Yes & A change to the price feed\\
+\bottomrule
+\end{tabularx}}
+
+
+\vspace{1.5ex}
+\textbf{What each one is for.} Changes 1 and 2 make the mark follow a real crash and keep a wrong price to one vote. Change 3 sells a large position in trouble sooner, in larger pieces, once the mark follows the crash. Change 4 would put the vault before ADL on six markets that clear the bar of those it already serves. Change 5 suggests a floor for the vault's capital. Change 6 looks after the external price, the one vote that comes from outside xyz.
+
+Where the suggestions do not help, or do worse than today: page~\pageref{sec:costs}.
+
+\foot
+\begin{exact}[Where the rules are]
+Each change's rule is in the Today / Suggested lines of its page. Today's rules and the suggested ones side by side: page~\pageref{sec:formulas}; in full: \S\ref{sec:current} and \S\ref{sec:three}, page~\pageref{sec:three}; earlier variants: the companion note on earlier variants. Changes 5 and 6 are not trading rules. Change 1 with today's internal price was not replayed; change 2 alone under today's mark was replayed, and does not protect the mark (page~\pageref{sec:notlive}).
+\end{exact}
+
+%======================================================================================== 12 method
+\page{What was tested: a replay whose mark matches the chain's at 98\% or more of liquidation blocks on the days checked; hard days and thirty random ones}{What was tested \,·\, what the comparisons rest on}\phantomsection\label{sec:tests}
+
+\textbf{A replay engine, built from outside.} trade.xyz's relayer is not public, so today's rules are our reconstruction from the chain record and trade.xyz's documentation. We rebuilt Hyperliquid's clearing rules in code; a proposed rule is a switch in that engine, so two results differ only by the rule. Under today's rules it gives the same mark as the real chain at 98 to 100\% of the blocks where a liquidation occurred, on seven market-days (the mark, not every outcome: see November 5, page~\pageref{sec:users}), 966 of 974 in all (99\%), and at 162 of 165 (98\%) on the five isolated-only ADL days, and reproduces 41 of the 42 real vault takeovers on crude oil (one missed, two added, the same \$500k). (Page~\pageref{sec:res-mark} counts takeover events: crude oil's 49 today come from 43 accounts.) Where we have a rule wrong, trade.xyz will see it first.
+
+\textbf{The data, all public.} Hyperliquid's node archive gives each day's full command stream, including every update trade.xyz's relayer sent. Hydromancer, a third-party data service, keeps an archive of xyz with real fills, position snapshots and the book by the minute; its 392 days give the ADL and takeover counts. A replay applies every recorded command in order from a snapshot; the book does not react to our mark.
+
+\textbf{Why we expect the result beyond these days.} A handful of examples is usual for such a study; the reason to expect more is a mechanism. Today's mark lags a fast move by construction (0.5\% per update against several percent in a minute), so positions already lost are not liquidated until it catches up and reach the vault further below water; a mark that follows the move reaches them earlier, whatever the market or the day. The size of the gain depends on the move's speed and the book's depth, so it differs by crash (large on Intel, reversed on Alphabet). This is an expectation, not a finding: days chosen after the formula was fixed, and the large ADL days we did not replay (Brent, crude oil, EWZ), would test it.
+
+\textbf{Real days: most chosen to hurt, thirty drawn at random.}
+
+{\small
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{6.4cm}@{}}
+\toprule
+Days replayed & What they test\\
+\midrule
+Alphabet October 28; Intel, Amazon October 29 (3) & Earnings crashes: the mark in a fast fall\\
+SK Hynix July 27 (1) & The largest real ADL: a wrong price at a reopening\\
+Oil, gold, silver, Alphabet, Meta, SpaceX on September 10, October 22 and October 30 (7) & Held out at first; the oil days later shaped change 2\\
+Alphabet, Intel, Amazon on October 20 and 21 (6) & Quiet days\\
+The rest of the three crash days, outside regular hours and the crash window (60\,s before the fall to 30\,min after) & Traders should see little difference\\
+ServiceNow, Lumentum, Marvell October 28; Reddit October 29; Cloudflare November 5 (5) & ADL on isolated-only markets\\
+The same days with a wrong price, a walked price or a pushed book; crude oil's daily break; gold's weekend & Attacks\\
+33 markets together on November 5 & A whole day, 33 markets at once\\
+30 market-days drawn from July 1 to November 8 (used: August 4 to October 1) & Days we did not choose\\
+The full record of xyz fills, 392 days & Where every backstop event really went\\
+\bottomrule
+\end{tabularx}}
+
+\vspace{1ex}
+\textbf{Results that we can rebuild.} The 22 market-days counted in the table were rebuilt on November 11 and every test run again on them: the \emph{final run}, on which every figure here rests. Parity by day: page~\pageref{sec:appintro}; specification and test vector: \S\ref{sec:three}.
+
+
+
+%======================================================================================== 13 results mark
+\page{Test results: in the three crashes the vault gets positions earlier; money to avoid ADL falls in total and on Intel, and rises on Alphabet}{What was tested \,·\, changes 1 to 3}\phantomsection\label{sec:res-mark}
+
+What does the proposal change for the vault? By the ranking of page~2, what matters is the money to avoid ADL and the capital, more than the amount inherited. We replayed the three earnings crashes and the other tests under both rule sets; each line is one test. \emph{Money to avoid ADL}: what the vault must hold so that its account never falls below zero, where traders are auto-deleveraged. \emph{Capital the vault needs}: what it must hold to keep its own maintenance margin on what it carries; it can be large when the first is small. ADL is triggered when the vault's account value would go below zero, so the first is the one that decides it. Lower is better; more inherited can mean positions taken earlier.
+
+{\renewcommand{\arraystretch}{1.2}
+{\small
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}Xrrrr@{}}
+\toprule
+Three crashes, today $\rightarrow$ proposal & Capital the vault needs & Money to avoid ADL & Inherited by the vault & Takeovers below $E$\\
+\midrule
+Alphabet, Oct 28 & \$329k $\rightarrow$ \$419k & \$185k $\rightarrow$ \$219k & \$6.96M $\rightarrow$ \$10.28M & 156/158 $\rightarrow$ 12/258\\
+Intel, Oct 29 & \$244k $\rightarrow$ \$45k & \$166k $\rightarrow$ \$33k & \$2.24M $\rightarrow$ \$300k & 258/258 $\rightarrow$ 23/29\\
+Amazon, Oct 29 & \$143k $\rightarrow$ \$125k & \$112k $\rightarrow$ \$99k & \$1.55M $\rightarrow$ \$1.32M & 400/403 $\rightarrow$ 287/296\\
+Total & \$715k $\rightarrow$ \$589k & \$462k $\rightarrow$ \$352k & \$10.75M $\rightarrow$ \$11.90M & 814/819 $\rightarrow$ 322/583\\
+\bottomrule
+\end{tabularx}}
+
+\textbf{What the vault is handed.} Most takeovers reach the vault below the external price today (table, and page~\pageref{sec:lag}); under the proposal about half do. Valued at the external price when handed over: $-\$157.9$k today, $+\$63.4$k under the proposal. This is the state of positions on arrival, not the vault's result; the sums are of the order of the replay's own error, so the counts carry the weight. The change comes from the mark, not the way of selling; Amazon stays mostly below under both. On Alphabet the vault inherits more and needs 27\% more capital and 18\% more money to avoid ADL; we think because it gets positions earlier, while they still have value. The gain in the total comes from Intel.
+
+{\small
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}Xrr@{}}
+\toprule
+Other tests, replayed under both sets of rules & Today & Proposal\\
+\midrule
+SK Hynix, July 27: money to avoid ADL (page~\pageref{sec:skhx2}) & \$1.43M & \$892k\\
+Five replays of isolated-only markets (mark as on the chain at 162 of 165 liquidation blocks): ADL & \$300.4k & \$99.5k\\
+Held out at first: takeovers on two oil markets, September 10 (later shaped change 2; 89 and 6 accounts counted market by market, 88 and 6 distinct wallets) & 95 & 13\\
+\quad on the five other market-days (4 and 7 accounts, by either count) & 8 & 11\\
+\quad positions the vault inherits, oil / five others & \$1.25M / \$5k & \$84k / \$100k\\
+\bottomrule
+\end{tabularx}}
+
+
+
+
+\vspace{1ex}
+}
+
+
+\par{\small\color{mute}Accounts counted market by market count a trader once in each market; distinct wallets count each trader once across all markets. Sources: every test, with the wrong prices, walks and pushes of page~\pageref{sec:attacks}: \S\ref{sec:three}, page~\pageref{sec:three}; closures: \S\ref{sec:closed}.\par}
+
+%======================================================================================== July 27
+\page{Test results: on July 27 the proposal's mark followed xyz's book, not the wrong prices; in the afternoon it sat up to 7\% above the book}{What was tested \,·\, SK Hynix, the largest ADL on record (\$25.6M)}\phantomsection\label{sec:skhx}
+
+SK Hynix on July 27 is the largest ADL on record. We replayed the whole day under both rule sets to see what the proposal's mark would have done. \textbf{The afternoon.} The external price stood at 1,237.30 from 11:00 until 17:17:45\,UTC, then printed 1,113.60 ($-10\%$) during the Korean night, 1,237.30 $\times$ 0.90 rounded to the price grid: we read it as trade.xyz's 10\% bound being re-anchored, not a market price. xyz's book had already fallen to 1,117. Today's mark stayed within 0.93\% of the book. The proposal's internal price moves at most about 2\% an hour, so its mark lagged the falling book: between 11:00 and 23:00 it was more than 2\% above the book on 20.9\% of updates (about 2.5 hours), more than 5\% above on 3.2\%, and at most 7.03\% above. That is a cost of change 2: longs were marked above what they could sell at, and today's rules liquidated 156 different accounts through the book where the proposal liquidated 121, counted once across both afternoon phases (35 fewer, \$262k less). trade.xyz's changelog says shortening its internal time constant reduces the gap between traded price and oracle; change 2 goes the other way.
+
+\textbf{The reopening.} At 23:00:03 the external price printed 868.18, 22\% below its last value, for two minutes. xyz's book, as recorded, fell from 1,128 to 955 in 24 seconds (its low was 951). \textbf{That 955 sat at the edge of today's bound:} today's published inputs were 954.99 on one update and 954.98 on the next two, the edge of a 10\% bound around the wrong price (868.18 $\times$ 1.10), before falling; from 23:00:27 the book's best bid sat at 954.98, and from 23:00:33 its best ask at 954.99. Under today's rules the mark falls 1\% per update to 917 by 23:01:18. Under the proposal the wrong price is outvoted, the anchor falls from 1,131 to 1,114 in the two minutes, and the median is the book: the mark follows it to 955 at 23:01:03, and no further. At 23:02:03 the external price printed 1,198.50; three seconds later the book was back near 1,107; today's mark rose to 1,197, the proposal's stayed at 1,128 or below to 23:08.
+
+\begin{center}\includegraphics[width=.94\textwidth]{figs/skhx_0727.pdf}\end{center}
+\vspace{-2ex}
+
+\textbf{What this shows.} The mark did not follow either wrong price, but the book fell 15\% and the mark went with it, bottoming 4\% higher than today's (917 today, 955). The outcome is indeterminate: had the book followed the proposal's published 868, the proposal's mark could have gone below today's 917. Costs and savings: next page.
+
+\par{\small\color{mute}Sources: the final run, with the proposal as written; the day's inputs and outputs are a test vector with the code.\par}
+
+%======================================================================================== July 27, costs
+\page{Test results: July 27 is indeterminate: 38\% less money to avoid ADL on the recorded book, which today's rule held at 955}{What was tested \,·\, SK Hynix, July 27, phase by phase}\phantomsection\label{sec:skhx2}
+
+The table splits the replayed day into its phases: what each set of rules liquidated through the book, handed to the vault, and needed to avoid ADL.
+
+{\small\renewcommand{\arraystretch}{1.15}
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}Xrr@{}}
+\toprule
+July 27, by phase & Today & Proposal\\
+\midrule
+11:00 to 17:17, book falling: liquidated through the book (accounts) / taken over & \$1.424M (156) / 0 & \$1.096M (101) / 4, \$10k\\
+17:17 to 23:00: liquidated through the book / taken over & \$0 / 0 & \$66k (23) / 1\\
+23:00 to 23:10, reopening: through the book / taken over & \$28.04M (901) / 351, \$15.90M & \$17.38M (765) / 586, \$18.97M\\
+After 23:10: taken over & 1 & 4\\
+Whole day: money to avoid ADL & \$1.43M & \$892k (38\% less)\\
+Whole day: capital the vault needs & \$2.60M & \$2.27M (13\% less)\\
+Takeovers below the external price at takeover (the external price was then the wrong one) & 349 of 352 & 586 of 595\\
+\bottomrule
+\end{tabularx}}
+
+trade.xyz has since removed the Korean pre-market from external coverage (its changelog), so these pages show what the suggested rule would have done that day, not an open gap. \textbf{Less liquidated, more to the vault.} Over the day 17\% less is liquidated under the proposal (\$45.4M today, \$37.7M), but more of it reaches the vault and less goes through the book, and the extra takeovers come at the reopening, not in the afternoon. The afternoon lag left fewer accounts liquidated before the reopening (previous page; the table's 101 and 23 are 121 different accounts, since three are liquidated in both phases).
+
+\textbf{ADL.} Money to avoid ADL falls 38\% and the capital the vault needs 13\% (page~\pageref{sec:res-mark} defines both). In the replay a balance like the \$1.04M the vault held five days earlier does not cover today's \$1.43M (and ADL did happen), but would have covered the proposal's \$892k. We do not claim ADL would have been avoided, only that this replay does not reach it. The margin is thin: \$892k needed against a balance of about \$1.04M five days earlier. The 38\% rests on a recorded book that today's rule held at 955 (page~\pageref{sec:skhx}). And the vault would have been far below its own maintenance margin, which needed \$2.27M. The difference comes from the mark, not the cut-back: with today's mark and the cut-back, money to avoid ADL is \$1.356M; with the proposal's mark and today's sizing, \$883k.
+
+\textbf{The hold, left out.} Several earlier candidates need \$0 on this day because of a second rule, the \emph{hold}, which freezes the price band while the feed and xyz's book disagree. We left it out: it has three constants of its own, depends on reading xyz's trades and depth, and in earlier runs it could be frozen by an attacker's own wash trades (trading with itself at a chosen price) (\$50M lifted the mark 4.44\% in its first version). Its price is this page: \$892k where the hold gave \$0.
+
+\par{\small\color{mute}Sources: the final run; whole-day figures and the two single-change runs (\$1.356M, \$883k): \S\ref{sec:three}, page~\pageref{sec:three}.\par}
+
+%======================================================================================== 14 results cut-back and combinations
+\page{Test results: the cut-back helps only with the proposal's mark and still leaves the vault more than today; the mark does most of the work on ADL}{What was tested \,·\, changes 1 to 3}\phantomsection\label{sec:res-cut}
+
+What does the cut-back (change 3) add? We replayed each change alone and together on the 23 largest positions of the crashes and five isolated-only markets; change 1 always with change 2.
+
+{\small
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}X>{\raggedleft\arraybackslash}p{3.7cm}>{\raggedleft\arraybackslash}p{3.7cm}@{}}
+\toprule
+Rules switched on & Inherited by the vault (the 23 largest positions only) & ADL (five replays of isolated-only markets)\\
+\midrule
+None (today) & \$8.72M & \$300.4k\\
+Cut-back only (3) & \$9.32M & \$301.1k\\
+Proposal's mark with change 2 (1, 2) & \$11.76M & \$135.3k\\
+Proposal's mark, change 2 and cut-back (1 to 3): the proposal & \$9.78M & \$99.5k\\
+\bottomrule
+\end{tabularx}}
+
+
+\vspace{1ex}
+The first column shows why change 3 waits for change 1: alone, under today's mark, the cut-back leaves the vault more than today; under the proposal's mark it leaves the vault less than the proposal's mark alone, but still more than today. The second column shows that the proposal's mark does most of the work on ADL and the cut-back adds to it. Why the vault receives more under the proposal's mark: page~\pageref{sec:res-mark}.
+
+\begin{center}\includegraphics[width=.8\textwidth]{figs/cutback.pdf}\end{center}
+\vspace{-2ex}
+{\small\color{mute}The chart shows three configurations on the 23 largest liquidated positions of the three earnings crashes: today's rules, the proposal's mark with today's sizing, and the proposal.\par}
+
+\textbf{What it costs.} Sales are larger (median \$47k today, \$53k with the proposal's mark and today's sizing, \$77k under the proposal; the first sale a fifth of a position, against about half), and filled further below the external price than today: on average 0.62\% today, 1.29\% under the proposal (1.44\% with the proposal's mark and today's sizing), because they sell into the fall. Compared with today's rules as a whole, the proposal's sales weigh more on the book: the worst tenth take 26\% of the nearby book today and 36\% under the proposal, and move the best price 0.50\% today and 0.73\%, because a mark that follows the crash liquidates into the fall and not after it.
+
+\foot
+\begin{exact}[Sources]
+Inherited by the vault: the 23 largest liquidated positions of the three earnings crashes only, 21 of them the same under both marks. Sold plus inherited is \$18.4M today and \$19.8M under the proposal (\$19.9M with the proposal's mark and today's sizing), because each position is valued at the mark of its first forced sale, which comes earlier and higher: the positions' value at that first sale is \$18.9M today, \$20.4M under the proposal's mark. The extra inheritance is not valuation: at today's takeover prices the proposal's inherited positions are worth \$9.81M against \$8.72M (Alphabet: 21{,}653 shares today, 31{,}053). ``Nearby order book'': depth within 1\% of the best price. Under today's mark, fills are 0.62\% below the external price with today's sizing and 0.82\% with the cut-back. The four combinations: \S\ref{sec:three}, page~\pageref{sec:three}.
+\end{exact}
+
+%======================================================================================== 15 users
+\page{Test results: on 30 random market-days about as many accounts are liquidated as today; on November 5 the vault inherits more}{What was tested \,·\, condition 1: the changes should not handicap users}\phantomsection\label{sec:users}
+
+Does the proposal change anything on days nobody chose? \textbf{Thirty market-days drawn at random.} We drew six days at random between July 1 and November 8, with five markets on each, from 12{,}362 eligible market-days. Two drawn days (July 10 and 19) and the first reserve (July 14) could not be rebuilt from the archive, and two reserves (August 4 and 5) took their place, so the days used run from August 4 to October 1: 30 market-days on 27 markets, most of them thin and isolated-only. In the order book 155 accounts are liquidated today and 154 under the proposal, counted market by market; market by market the two counts differ by at most three. Two tiny positions (\$25 together) reach the backstop under both; on the chain, no takeover of any size. On the typical market-day the proposal's mark is a median 0.03\% from today's, and for 1\% of the time more than 0.17\% away. On the worst market-day the figures are 0.14\% and 1.6\%. The large gaps are on thin markets whose venue is closed, where the proposal follows xyz's book at a limited speed (change 2).
+
+\textbf{A whole day of 33 markets.} November 5 was the broadest selloff on record, so it is not an ordinary day, but it replays 33 markets together: 8{,}877 accounts liquidated today and 8{,}780 under the proposal, counted market by market (7{,}061 and 7{,}019 distinct wallets). ADL on isolated-only markets is \$154k today and \$64k under the proposal (\$60k with change 4, the one day it was replayed). The vault inherits \$540k today and \$1.15M under the proposal; both include a \$510k S\&P 500 takeover that did not happen on the chain, and without it the comparison is about \$30k against about \$640k, roughly twenty times. The vault needs no capital today and \$8k under the proposal.
+
+\phantomsection\label{sec:crashdays}\textbf{The rest of the three crash days,} outside regular hours and the crash window, is a weaker test: 243 of the 261 accounts (counted market by market) liquidated there fall in the 3.5 hours after the crash. 255 are liquidated under the proposal, and its mark sits about one hundredth of a percent from today's (on Amazon one account only under the proposal, two only today). Stop orders are the visible difference: on Amazon 295 fire today and 390 under the proposal (146 of them under the proposal only); on Alphabet and Intel slightly fewer (763 today, 710; 1{,}398 today, 1{,}387).
+
+\begin{center}\includegraphics[width=.8\textwidth]{figs/normal_days.pdf}\end{center}
+\vspace{-1.5ex}
+
+\par{\small\color{mute}Sources: random sample, drawn with a fixed seed (the nine days used elsewhere excluded); 33 markets and the crash days: \S\ref{sec:three}, page~\pageref{sec:three}. Rules we tested and dropped because traders would have felt them (lower leverage for large positions, a leverage cut around earnings, earlier liquidation for everyone): the companion note on earlier variants.\par}
+
+%======================================================================================== 16 attackers
+\page{Test results: a wrong price alone moves the mark slowly; a walked price with a book push does as much harm as today, or more}{What was tested \,·\, condition 2: attacks should do less harm}\phantomsection\label{sec:attacks}
+
+Every attack we designed on xyz's pricing rules was replayed under today's rules and under the proposal, through real accounts with real margin that can be liquidated like anyone else. Taken one at a time, a short wrong price, a walked external price and a push of xyz's book while the feed and the anchor agree were each outvoted in the tests, on deep and thin books alike; when they are apart, as during a real move, a push sets the mark between them (page~\pageref{sec:vote}).
+
+\begin{center}\includegraphics[width=.6\textwidth]{figs/attacks.pdf}\end{center}
+\vspace{-1.5ex}
+
+\textbf{What the proposal leaves open.} Someone who walks the external price and empties one side of xyz's book gets two votes to agree: on Alphabet overnight \$15.5M is liquidated today and \$16.0M under the proposal (\$15.2M today with the walk alone). Selling into every bid within 10\% of the price takes well under \$1.5M of margin on every market we measured:
+
+{\small
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}Xrr@{}}
+\toprule
+Typical minute, on the days replayed & Bids within 10\% of the price & Margin needed to take them all\\
+\midrule
+Reddit, overnight (the least) & \$280k & \$30k\\
+Alphabet, overnight & \$6.14M & \$310k\\
+SK Hynix, Korean trading hours (the most margin) & \$12.24M & \$1.22M\\
+\bottomrule
+\end{tabularx}}
+
+So this attack stays open; we think the protection lies in the quality of the external price (change 6). The correction step is not what makes it succeed: without it these tests give the same figures. A push of the book kept up for hours while the feed is not live also still moves the mark, about 2\% per hour (change 2).
+
+\foot
+\begin{exact}[Sources]
+Margin $=$ bids $/$ maximum leverage, median minute of the book rebuilt on 22 market-days, market makers assumed not to refill (a lower bound on the cost). Every test, with every walk: \S\ref{sec:three}, page~\pageref{sec:three}. Closures: \S\ref{sec:closed}. A remark for Hyperliquid, outside the six changes, on a book with one side empty (ENA, a token on another Hyperliquid exchange, March 14, 2026): \S\ref{sec:three}, page~\pageref{sec:three}. Earlier rules against a walked feed, all rejected: the companion note on earlier variants.
+\end{exact}
+
+%======================================================================================== 17 costs
+\page{What it costs: where the suggestions do worse than today, do no better, or were not tested}{The other side of the ledger \,·\, each figure today first, then the proposal (changes 1 to 3 together)}\phantomsection\label{sec:costs}
+
+{\small
+This page gathers every test where the proposal does worse than today, no better, or was not tested (figures: \S\ref{sec:three}, page~\pageref{sec:three}). \textbf{The pattern.} In most tests the vault inherits more under the proposal than today: Alphabet's earnings crash, SK Hynix on July 27, the 33 markets of November 5, five market-days held out of the design, a stuck feed, a frozen book and the 23 largest positions. It inherits less on Intel, on Amazon within the replay's error, and on the two oil markets of September 10. By page~2's ranking, more inherited matters through the money to avoid ADL and capital given beside it below: on the three crashes together both fall (\$462k, \$352k; \$715k, \$589k), on Alphabet both rise. The replay favors the proposal in one known way, the read lag (page~\pageref{sec:limits}).
+
+\textbf{Worse than today.}
+\begin{itemize}[leftmargin=1.3em,itemsep=0pt,topsep=0pt,parsep=0pt]
+\item \textbf{A walked external price with a push of xyz's book} (page~\pageref{sec:attacks}): Alphabet overnight \$15.5M liquidated, \$16.0M; after an upward walk after the close \$1.01M, \$2.64M; a downward one with a 60-second push \$12.1M, \$12.6M; Amazon and Intel up to \$1.94M, \$1.99M. \textbf{A downward push held an hour} on a feed that is not live: 0.97\%, 2.10\%; after any push the proposal's mark returns more slowly.
+\item \textbf{The mark above the book for hours} (change 2, page~\pageref{sec:skhx}): on SK Hynix, July 27, between 11:00 and 23:00 today's mark stayed within 0.93\% of the book; the proposal's was more than 2\% above it on 20.9\% of updates, more than 5\% on 3.2\%, at most 7.03\%. Whether a trader could draw value from it, and its effect on funding, were not tested.
+\item \textbf{Earnings crashes} (page~\pageref{sec:res-mark}), \textbf{Alphabet:} inherited \$6.96M, \$10.28M; capital \$329k, \$419k; money to avoid ADL \$185k, \$219k. Three crashes: inherited \$10.75M, \$11.90M. \textbf{A \$1M push during the crash:} capital \$771k, \$863k (the gap is Alphabet's). \textbf{External price frozen two minutes:} capital \$939k, \$974k; inherited \$15.11M, \$18.48M. \textbf{xyz's whole book standing still five minutes} (Alphabet): mark up to 4.78\% above the external price, 8.65\%; 217 takeovers (197 below the external price), 331 (306); inherited \$11.41M, \$16.26M; capital \$498k, \$540k; money to avoid ADL \$280k, \$286k; value at takeover (their worth at the external price when handed over, not the vault's result) $-\$44.8$k, $-\$210.7$k.
+\item \textbf{SK Hynix, July 27} (pages~\pageref{sec:skhx}--\pageref{sec:skhx2}): 352 takeovers (349 below the external price), 595 (586); inherited \$15.90M, \$19.05M; value at takeover $-\$1.79$M, $-\$2.45$M (not the vault's result). Money to avoid ADL falls 38\% (\$1.43M today, \$892k), but that rests on xyz's book stopping at 955, the edge of today's bound around the wrong price 868.18; had the book followed that price, the proposal's mark could have gone below today's low of 917. The result is indeterminate.
+\item \textbf{November 5, 33 markets} (page~\pageref{sec:users}): inherited \$540k, \$1.15M (about \$30k against \$640k without the false takeover); capital \$0, \$8k; ADL and inherited together about \$184k, \$704k. \textbf{Five other market-days held out of the design} (page~\pageref{sec:res-mark}): takeovers 8, 11; \$5k, \$100k; the seven together need under \$50, about \$100 to avoid ADL. \textbf{The 23 largest positions of the crashes} (page~\pageref{sec:res-cut}): \$8.72M, \$9.78M.
+\item \textbf{Sales of large positions} (change 3, page~\pageref{sec:res-cut}): median sale \$47k, \$77k; filled 0.62\% below the external price, 1.29\%; the worst tenth take 26\% of the book within 1\% of the best price, 36\%, and move the best price 0.50\%, 0.73\%.
+\item \textbf{More stop orders fire on Amazon's crash day} (page~\pageref{sec:users}): 295, 390.
+\item \textbf{Funding} (change 1): while the feed is live the oracle is the raw external price, without today's 0.5\% clamp, so a wrong print reaches funding in full; probably small, not replayed (page~\pageref{sec:limits}).
+\end{itemize}
+\textbf{No better than today, or a change to documented behavior.}
+\begin{itemize}[leftmargin=1.3em,itemsep=0pt,topsep=0pt,parsep=0pt]
+\item \textbf{Random market-days:} the mark is a median 0.03\% from today's, but on the worst one more than 1.6\% away for 1\% of the time (page~\pageref{sec:users}).
+\item \textbf{A lasting wrong external price} (page~\pageref{sec:attacks}) still moves the mark and liquidates healthy accounts: after 15 minutes of a 20\% error, 16\% and 801 accounts today, 7.92\% and 559. With a \$5M push as well, the mark moves at most 16.15\% today, 13.10\%; more is liquidated through the book under the proposal (\$3.09M, \$6.04M), while the total liquidated is lower (\$25.3M, \$18.2M). \textbf{One wrong price followed by no change} starts the internal price (not measured).
+\item \textbf{Change 2's 1\% cap} (page~\pageref{sec:notlive}; figures \S\ref{sec:closed}, page~\pageref{sec:closed}): on 510 closures the mean gap at reopening is 0.477\% today, 0.478\%, and two closures end more than 0.5\% further from the reopening price than today. \textbf{No resets under change 2:} as written, discovery in a closed session is limited to $1/\text{maxLev}$ around the last external price; trade.xyz's resets (re-anchoring the band near its edge) could be kept; untested either way. \textbf{The anchor is exempt from the discovery bound} (page~\pageref{sec:vote}), so the mark can leave it (how often was not measured); trade.xyz documents that a position whose liquidation price is outside the bounds cannot be liquidated, and the proposal would change that documented behavior.
+\item \textbf{Change 4}, six more markets for the vault, would not have prevented past ADL (page~\pageref{sec:ceiling}); 92 isolated-only markets keep ADL. The vault's capital for its six markets was not computed. Its switch is irreversible, can lead to a review of trade.xyz's stake, and moves all of a cross account's positions to the vault at a takeover.
+\end{itemize}
+\textbf{Not tested.} Change 6, the items for the external price (no test shows they stop a walk); whether, on July 27, the book would have gone below 955 under the proposal; change 1 with today's internal price; the switching of change 2 on its own; a relayer restart; a feed flickering by one tick; halts over two minutes; splits, dividends and rolls.\par}
+
+
+
+%======================================================================================== 17b limits
+\page{What the study cannot tell: today's rules are reconstructed, the days are few, and the book does not react}{The limits of every result in this paper}\phantomsection\label{sec:limits}
+
+What follows limits every result in this paper: how the replay was built, which days it covers, and what it cannot see.
+\begin{itemize}[leftmargin=1.3em,itemsep=.6ex,topsep=0pt]
+\item \textbf{Today's rules are our reconstruction:} it includes a read lag (the delay with which today's relayer reads the external price, as we reconstruct it) and corrections fitted to the chain record. The proposal is replayed as written, with neither. The read lag delays today's mark, so in fast crashes it favors the proposal; we have not measured by how much.
+\item \textbf{The replay is not exact.} On November 5 it shows a \$510k takeover that never happened on the chain. A gap as small as Amazon's capital need, \$143k today against \$125k under the proposal, should not be read as a gain.
+\item \textbf{Two simplifications favor one side.} The book's mid stands in for trade.xyz's documented impact price, so today's closed-market pushes may be overstated. The replay has no re-anchoring of the discovery bound (``resets'') under either rule set.
+\item \textbf{The tests are a handful of hard days,} and the formula was chosen after about forty variants tried on them, mostly other mark formulas, margin rules and liquidation sizes (the companion note); only the random sample was untouched, and two of its drawn days, which could not be rebuilt, were replaced by reserves. Why we expect the result to hold beyond them, and what would test it: page~\pageref{sec:tests}.
+\item \textbf{Funding is not replayed}, so the effect of a raw external price on funding (page~\pageref{sec:costs}) is not measured.
+\item \textbf{The order book does not react.} Every replay uses the book as recorded; how market makers would react, and the vault's profit or loss when it sells, are not measured.
+\item \textbf{The specification that accompanies this paper (page~\pageref{sec:tests}) leaves open} what a live relayer can read in time, how it restarts, how several relayer instances share the anchor's state, and how the anchor is rounded (off the price grid in the replay). Its test day, July 27, does not exercise the internal price's bound, a one-sided book or a restart.
+\item \textbf{The capital figures are estimates} on 209 days of hourly prices, with an instant move (page~\pageref{sec:capital} and \S\ref{sec:cover}).
+\end{itemize}
+
+\par{\small\color{mute}Sources: every test, \S\ref{sec:three}, page~\pageref{sec:three}; the capital estimates, \S\ref{sec:cover}.\par}
+

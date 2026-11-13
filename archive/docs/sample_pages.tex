@@ -1,0 +1,110 @@
+% Sample of the new page template (pages 1 and 2). The paper itself, mark_formulas.tex, is not changed.
+% Numbers are copied from mark_formulas.tex as it stands; they become generated keys with the build.
+\documentclass[10.5pt,a4paper]{article}
+\usepackage[margin=2.1cm]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage[table]{xcolor}
+\usepackage{booktabs,tabularx,array}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\usepackage[hidelinks]{hyperref}
+\usepackage[most]{tcolorbox}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{.7ex}
+\pagestyle{plain}
+
+\definecolor{today}{HTML}{E8683A}
+\definecolor{lead}{HTML}{2F74D0}
+\definecolor{vault}{HTML}{1FAF7A}
+\definecolor{mute}{HTML}{6B6B6B}
+\definecolor{rule}{HTML}{E9E7E2}
+\definecolor{boxbg}{HTML}{F7F6F3}
+
+% one section per page: \page{message title}{tag line}
+\newcommand{\page}[2]{\clearpage{\LARGE\bfseries\raggedright #1\par}\vspace{.3ex}{\color{mute}\small #2\par}\vspace{1.2ex}}
+% the technical block at the foot of a page
+\newtcolorbox{exact}[1][The rule, exactly]{enhanced,colback=boxbg,colframe=rule,boxrule=.5pt,arc=1.5pt,left=7pt,right=7pt,top=5pt,bottom=5pt,
+  fonttitle=\bfseries\small,coltitle=black,colbacktitle=boxbg,title={#1},fontupper=\small}
+\newtcolorbox{words}{enhanced,colback=white,colframe=rule,boxrule=.5pt,arc=1.5pt,left=7pt,right=7pt,top=5pt,bottom=5pt,
+  fonttitle=\bfseries\small,coltitle=black,colbacktitle=white,title={Words used},fontupper=\small}
+\newcommand{\ptag}[2]{\textcolor{#1}{\textbf{#2}}}
+
+\begin{document}
+
+%======================================================================================== page 1
+{\color{mute}\small trade.xyz protection \,·\, draft 2026-11-10 \,·\, sample of the page layout\par}\vspace{.5ex}
+{\LARGE\bfseries\raggedright Seven changes that keep traders out of ADL and make the backstop vault cheaper to run\par}
+\vspace{1.2ex}
+
+When a position on xyz can no longer be closed in the order book, the backstop vault takes it over; when the vault cannot, profitable traders on the other side are closed out against their will (ADL). In 392 days xyz had \$85.2M of ADL. This paper proposes seven changes, six of them in trade.xyz's own hands, that remove most of the cases where this happens, make the vault take positions at a fair price when it must, and size the vault's capital from the positions it actually backs. Traders see no difference on a normal day, and an attacker gains less than under today's rules.
+
+\begin{center}\includegraphics[width=.8\textwidth]{figs/headline.pdf}\end{center}
+\vspace{-2ex}
+{\small\color{mute}Each pair is one test replayed under today's rules and under the proposal, on the same recorded market. Bars show the proposal as a share of today's value; the labels are the measured values.\par}
+
+\vspace{.6ex}
+{\small
+\begin{tabularx}{\textwidth}{@{}r>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{3.1cm}>{\raggedright\arraybackslash}p{2.6cm}@{}}
+\toprule
+ & The change, in plain words & Who ships it & Serves\\
+\midrule
+1 & The price used to value positions follows the asset's real market price at once, instead of catching up in small steps & trade.xyz & \ptag{today}{backstop loss}\\
+2 & If the price feed makes a jump too large to be real, the valuation price waits until trading on xyz confirms it & trade.xyz & \ptag{mute}{resists attacks}\\
+3 & When the real market is closed or its feed is stuck, xyz prices itself by one rule that a single large order cannot push & trade.xyz & \ptag{mute}{resists attacks}\\
+4 & A large position in trouble is reduced just enough to be safe again, instead of being sold in 20\% slices every 30\,s & Hyperliquid & \ptag{today}{backstop loss}\\
+5 & On six more markets the vault is allowed to step in, so their traders are no longer exposed to ADL & trade.xyz, with validator review & \ptag{today}{ADL}\\
+6 & The vault's size is recomputed every morning from the positions actually open & trade.xyz & \ptag{vault}{capital}\\
+7 & trade.xyz's price feed states how old its price is and draws on more than one source & trade.xyz & \ptag{mute}{resists attacks}\\
+\bottomrule
+\end{tabularx}}
+
+\vfill
+\begin{words}
+\begin{tabularx}{\linewidth}{@{}>{\bfseries\raggedright\arraybackslash}p{3.6cm}X@{}}
+Mark price & The price Hyperliquid uses to value positions and decide liquidations.\\
+External price & The asset's price on its own market (the stock exchange, the futures venue), fed in by trade.xyz.\\
+Takeover & The backstop vault takes a position that fell too far to be closed in the order book.\\
+ADL & Auto-deleveraging: with no vault to take a position, profitable traders on the other side are closed out.\\
+Isolated-only market & A market where the vault is not allowed to take positions, so its backstop is ADL.
+\end{tabularx}
+\end{words}
+
+%======================================================================================== page 2
+\page{What we are solving, and in what order}{The frame for every page that follows}
+
+\textbf{Three problems, ranked.} When two goals pull apart, the higher one wins: trade.xyz would rather the vault carry more than have one trader auto-deleveraged.
+
+{\renewcommand{\arraystretch}{1.35}
+\begin{tabularx}{\textwidth}{@{}c>{\bfseries}p{2.5cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{5.2cm}@{}}
+\toprule
+ & Problem & In plain words & How this paper measures it\\
+\midrule
+\ptag{today}{1} & ADL & Profitable traders are closed out against their will because nothing else can absorb a failing position & ADL notional; the capital the vault would need to avoid ADL\\
+\ptag{today}{2} & Backstop loss & The vault takes over positions that are already worth less than it pays for them & Notional the vault inherits; its value at takeover against the external price; takeovers that start underwater\\
+\ptag{vault}{3} & Idle capital & The vault holds more money than its risk requires, or less & The capital need of today's positions against what the vault holds\\
+\bottomrule
+\end{tabularx}}
+
+\vspace{1.5ex}
+\textbf{Two conditions every change must meet.}
+\begin{itemize}[leftmargin=1.3em,itemsep=.4ex,topsep=.3ex]
+\item \textbf{It must not handicap users.} On a normal day a trader sees no difference: no extra liquidation, no extra stop fired, no leverage cut, no rule that depends on who the account is.
+\item \textbf{An attacker must profit less than today.} Each attack is replayed with real, margined accounts that the engine can liquidate like anyone else. Under the proposal the attacker must move the mark less and hurt fewer accounts than under today's rules.
+\end{itemize}
+
+\vspace{1ex}
+\textbf{How we know.}
+\begin{itemize}[leftmargin=1.3em,itemsep=.4ex,topsep=.3ex]
+\item \textbf{One engine for every method.} Today's rules, the proposal and every variant we dropped are replayed through the same engine on the same recorded market data, so a difference in the result comes from the rule and from nothing else.
+\item \textbf{Everything can be rebuilt.} Each result comes from a command that anyone with the data can run again, and the same input gives the same output.
+\end{itemize}
+
+\vspace{1ex}
+\textbf{How to read the pages that follow.} One page per idea. The title states the message, the chart shows today (orange) against the proposal (blue), and the box at the foot gives the exact rule and where the full results are.
+
+\vfill
+\begin{exact}[Not shown, on purpose]
+The vault's profit or loss in a scenario is never reported: it depends on how the vault sells what it inherits, which a replay of a recorded order book cannot test. Backstop loss is measured at the moment of takeover instead. A competitor's price is never an input of the mark. How market makers would react to the new rules is outside this study, so every result holds the order book as it was recorded.
+\end{exact}
+
+\end{document}

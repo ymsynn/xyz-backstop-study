@@ -1,0 +1,5 @@
+/data/
+engine/target/
+__pycache__/
+config.env
+.DS_Store

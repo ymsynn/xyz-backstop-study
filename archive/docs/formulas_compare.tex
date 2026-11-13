@@ -1,0 +1,73 @@
+\documentclass[9pt,a4paper,landscape]{extarticle}
+\usepackage[margin=1.2cm]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage[table]{xcolor}
+\usepackage{booktabs,tabularx,array}
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\definecolor{chg}{RGB}{255,214,153}
+\newcommand{\chg}[1]{\colorbox{chg}{$\displaystyle #1$}}
+\newcommand{\med}{\operatorname{med}}
+\newcommand{\clip}{\operatorname{clip}}
+\newcommand{\D}{\mathcal{D}}
+\newcolumntype{L}{>{\raggedright\arraybackslash}X}
+\renewcommand{\arraystretch}{1.25}
+\begin{document}
+{\large\textbf{trade.xyz mark: formulas}}\hfill{\small highlighted = differs from the current rules \quad 2026-11-10}
+
+\vspace{1.5ex}
+\begin{tabularx}{\textwidth}{@{}p{2.55cm}LLL@{}}
+\toprule
+ & \textbf{Current (deployed)} & \textbf{Previous candidate} (hold on feed failure) & \textbf{New proposal} (three-vote mark, one formula)\\
+\midrule
+Oracle,\newline feed live &
+$O_t = \D_t\big(\clip(E_t,\ O_{t-k}(1\pm c))\big)$ &
+$O_t = \chg{\D_t(E_t)}$ &
+$O_t = \chg{\D_t(E_t)}$ \\[1.2ex]
+Published input 1 &
+$X^1_t = \D_t\big(\clip(O_t,\ M_{t-1}(1\pm c))\big)$ &
+$X^1_t = \D_t\big(\clip(O_t,\ M_{t-1}(1\pm c))\big)$ &
+$X^1_t = \chg{V_t}$,\quad $\chg{V_t = E_t \text{ if the feed is live, else } O_t}$ \\[1.2ex]
+Published input 2 &
+$X^2_t = \D_t\big(\clip(E_t + e_t,\ \mathrm{hull}[\,O_{t-k}(1\pm c),\ X^2_{t-k}(1\pm c)\,])\big)$ &
+$X^2_t = \clip\big(E_t + e_t,\ \chg{E_t(1\pm c)}\big)$ &
+$X^2_t = \chg{A_t}$,\quad $\chg{\tilde A_t = A_{t-1} + \big(1 - e^{-\Delta t/\tau}\big)(V_t - A_{t-1})}$,\newline $\chg{A_t = \tilde A_t}$ if $B_{t-1}$ was strictly between $V_{t-1}$ and $A_{t-1}$, else $\chg{A_t = \clip\big(\tilde A_t,\ [V_t, M_{t-1}]\big)}$ \\[1.2ex]
+Mark\newline (Hyperliquid) &
+$M_t = \clip\big(\med(X^1_t, X^2_t, B_t),\ M_{t-1}(1\pm 1\%)\big)$ &
+$M_t = \clip\big(\med(X^1_t, X^2_t, B_t),\ M_{t-1}(1\pm 1\%)\big)$ &
+$M_t = \clip\big(\med(\chg{V_t},\ \chg{A_t},\ B_t),\ M_{t-1}(1\pm 1\%)\big)$ \\[1.2ex]
+Feed failure\newline (bad print) &
+none &
+\chg{\text{hold}}: starts when $|E_t - E_{t-1}| > d\,E_t$ and $P_t$, $I_t$ both differ from $E_t$ by more than $c$ on the same side; lasts while they do.\newline
+$X^1_t = \D^R_t(E_t)$,\ \ $X^2_t = \D^R_t(P_t)$,\ \ $R \leftarrow R + \clip(E_t - R,\ \pm d\,R)$ every 150\,s &
+none: the median above \\[1.2ex]
+Feed not live &
+scheduled closures only:\newline
+$O_t = O_{t-1} + \big(1 - e^{-\Delta t^*/\tau}\big)(\mathrm{mid}_t - O_{t-1})$ &
+closure \chg{\text{or } E_t = E_{t-1} = E_{t-2}}:\newline
+\mbox{$O_t\!=\!O_{t-1}\!+\!\big(1\!-\!e^{-\Delta t^*/\tau}\big)\,\chg{\clip\big(\mathrm{mid}_t\!-\!O_{t-1},\,\pm\kappa\,O_{t-1}\big)}$} &
+$O_t$ as the previous candidate; \chg{\text{same mark formula}}: $A_t$ keeps running, never restarted \\[1.2ex]
+Liquidation\newline (Hyperliquid) &
+below MM: $20\%$ of $|q|$ per round above \$100k, rounds 30\,s apart, else all &
+below MM, above \$100k, at every update:\newline \chg{\Delta q = \Big(1 - \dfrac{\text{equity}}{\text{IM}}\Big)\,|q|}; else all &
+as the previous candidate \\
+\bottomrule
+\end{tabularx}
+
+\vspace{1.5ex}
+{\small
+$t$: relayer update, about every 3\,s, read lag $k \ge 1$ \quad
+$E_t$: external price \quad
+$B_t = \med(\text{bid}_t, \text{ask}_t, \text{last}_t)$: xyz book price, computed by Hyperliquid \quad
+$O_t$: oracle \quad $M_t$: mark \quad
+$A_t$: anchor, $A_0 = E_0$\\
+$c = 50$\,bp \quad $d = 1/\text{maxLev}$ \quad $\kappa = 1\%$ \quad $\tau = 30$\,min \quad $\Delta t^* = \min(\Delta t, \tau/10)$ \quad
+$\D_t(x) = \clip\big(x,\ E_t(1\pm d)\big)$, \ $\D^R_t$ the same around the held centre $R$ \quad
+$e_t$: 150\,s average of $\mathrm{mid} - E$ \quad $V_t$: the feed's vote\\
+When the feed is not live the relayer keeps $O_t$ unrounded and publishes it rounded. Feed live: the venue is open and $E_t$ changed in at least one of the last two updates; otherwise not live\\
+$P_t$: volume-weighted median of recent voluntary xyz trades \quad
+$I_t$: xyz book impact mid at 6{,}000\,USDC \quad
+MM $= \tfrac12$ IM at max leverage. \quad
+Backstop below $\tfrac23$\,MM and ADL are unchanged in all three.\\[0.6ex]
+New proposal: $A_t$ is the vote's average over $\tau$, kept between the vote and the previous mark ($[a,b]$: the range between $a$ and $b$), so it never lags a move the mark has already made. It does not follow a previous mark that xyz's book alone decided, so a push of the book is not carried on after it ends. It is exempt from the discovery bound $\D_t$: the median always lies between $V_t$ and $A_t$.}
+\end{document}

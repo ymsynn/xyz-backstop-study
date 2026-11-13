@@ -1,0 +1,36 @@
+# Publishes the rule explorer and the papers on GitHub Pages. Only viewer/ and the three PDFs go on the site;
+# the rest of the repository is not published.
+name: Rule explorer
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: true
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}viewer/
+    steps:
+      - uses: actions/checkout@v4
+      - name: Assemble the site (explorer and papers only)
+        run: |
+          mkdir -p site/docs
+          cp -r viewer site/viewer
+          rm -f site/viewer/*.py site/viewer/*.sh
+          cp docs/mark_formulas.pdf docs/variant_history.pdf docs/formulas_now_vs_proposal.pdf site/docs/
+          printf '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=viewer/"><title>Rule explorer</title><a href="viewer/">Rule explorer</a>\n' > site/index.html
+          touch site/.nojekyll
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - id: deploy
+        uses: actions/deploy-pages@v4

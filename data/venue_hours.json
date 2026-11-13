@@ -1,0 +1,62 @@
+{
+  "_doc": "Scheduled closures of each market's external venue, in the venue's local time. Source: the venues' published trading hours (CME Globex energy and metals; ICE Futures Europe Brent; trade.xyz US-stock sessions, docs.trade.xyz perpetuals/markets/stocks/us.md). daily = [close, open) every weekday; weekend = [Friday close, Sunday open). Each entry is checked against the tape (sim/oos: every external-price freeze of 2+ min falls in a listed closure): BRENTOIL's feed follows the CME schedule (frozen 21:00-22:00 UTC on 2026-09-10), not ICE's. internal = the closures in which trade.xyz prices the market on its internal oracle (30-min EMA of xyz's book), checked on the tape: CME daily close (CL, BRENTOIL, SILVER 21:00-22:00 UTC) and weekend (GOLD from Friday 21:00); US stocks only on the weekend (SPCX from Friday 20:00 ET; the daily 20:00-20:05 ET gap keeps the frozen external price). krx_nxt (Korean stocks, KRX + NXT extended hours 08:00-20:00 KST): internal from 20:00 to 08:00 KST, checked on SKHX 07-27 (oracle internal 11:00-23:00 UTC); its weekend reopens on Monday (weekend_reopen).",
+  "venues": {
+    "cme_globex": {
+      "tz": "America/Chicago",
+      "daily": [
+        "16:00",
+        "17:00"
+      ],
+      "weekend": [
+        "16:00",
+        "17:00"
+      ],
+      "internal": [
+        "daily",
+        "weekend"
+      ]
+    },
+    "xyz_us_stock": {
+      "tz": "America/New_York",
+      "daily": [
+        "20:00",
+        "20:05"
+      ],
+      "weekend": [
+        "20:00",
+        "20:05"
+      ],
+      "internal": [
+        "weekend"
+      ]
+    },
+    "krx_nxt": {
+      "tz": "Asia/Seoul",
+      "daily": [
+        "20:00",
+        "08:00"
+      ],
+      "weekend": [
+        "20:00",
+        "08:00"
+      ],
+      "weekend_reopen": "Mon",
+      "internal": [
+        "daily",
+        "weekend"
+      ]
+    }
+  },
+  "coins": {
+    "CL": "cme_globex",
+    "GOLD": "cme_globex",
+    "SILVER": "cme_globex",
+    "BRENTOIL": "cme_globex",
+    "META": "xyz_us_stock",
+    "GOOGL": "xyz_us_stock",
+    "AMZN": "xyz_us_stock",
+    "INTC": "xyz_us_stock",
+    "SPCX": "xyz_us_stock",
+    "SKHX": "krx_nxt"
+  }
+}
