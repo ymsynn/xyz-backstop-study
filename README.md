@@ -87,11 +87,11 @@ Changes 1 and 2 go together, 3 after them, 4 with the capital it needs, 5 and 6 
 
 | | Today | Suggested |
 |---|---|---|
-| **Oracle**, feed live (1) | $`O_t = \mathcal{D}_t\big(\operatorname{clip}(E_t,\ O_{t-k}(1\pm c))\big)`$ | $`O_t = {\color{#2F74D0}\mathcal{D}_t(E_t)}`$ |
-| **First input** (1) | $`X^1_t = \mathcal{D}_t\big(\operatorname{clip}(O_t,\ M_{t-1}(1\pm c))\big)`$ | $`X^1_t = {\color{#2F74D0}V_t}`$, with $`{\color{#2F74D0}V_t = E_t}`$ if the feed is live, else $`{\color{#2F74D0}O_t}`$ |
-| **Second input** (1) | $`X^2_t = \mathcal{D}_t\big(\operatorname{clip}(E_t + e_t,\ H_t)\big)`$ | $`X^2_t = {\color{#2F74D0}A_t}`$, from $`{\color{#2F74D0}\tilde A_t = A_{t-1} + \big(1 - e^{-\Delta t/\tau}\big)(V_t - A_{t-1})}`$, then a correction step |
-| **Mark** (Hyperliquid) | $`M_t = \operatorname{clip}\big(\operatorname{med}(X^1_t, X^2_t, B_t),\ M_{t-1}(1\pm 1\%)\big)`$ | $`M_t = \operatorname{clip}\big(\operatorname{med}({\color{#2F74D0}V_t}, {\color{#2F74D0}A_t}, B_t),\ M_{t-1}(1\pm 1\%)\big)`$ |
-| **Feed not live** (2) | in closures or a data gap: $`O_t = O_{t-1} + \big(1 - e^{-\Delta t^*/\tau}\big)(\text{mid}_t - O_{t-1})`$ | in closures $`{\color{#2F74D0}\text{or when } E_t = E_{t-1} = E_{t-2}}`$: $`O_t = O_{t-1} + \big(1 - e^{-\Delta t^*/\tau}\big)\,{\color{#2F74D0}\operatorname{clip}\big(\text{mid}_t - O_{t-1},\ \pm\kappa\,O_{t-1}\big)}`$ |
+| **Oracle**, feed live (1) | $`O_t = \mathcal{D}_t\big(\mathrm{clip}(E_t,\ O_{t-k}(1\pm c))\big)`$ | $`O_t = {\color{#2F74D0}\mathcal{D}_t(E_t)}`$ |
+| **First input** (1) | $`X^1_t = \mathcal{D}_t\big(\mathrm{clip}(O_t,\ M_{t-1}(1\pm c))\big)`$ | $`X^1_t = {\color{#2F74D0}V_t}`$, with $`{\color{#2F74D0}V_t = E_t}`$ if the feed is live, else $`{\color{#2F74D0}O_t}`$ |
+| **Second input** (1) | $`X^2_t = \mathcal{D}_t\big(\mathrm{clip}(E_t + e_t,\ H_t)\big)`$ | $`X^2_t = {\color{#2F74D0}A_t}`$, from $`{\color{#2F74D0}\tilde A_t = A_{t-1} + \big(1 - e^{-\Delta t/\tau}\big)(V_t - A_{t-1})}`$, then a correction step |
+| **Mark** (Hyperliquid) | $`M_t = \mathrm{clip}\big(\mathrm{med}(X^1_t, X^2_t, B_t),\ M_{t-1}(1\pm 1\%)\big)`$ | $`M_t = \mathrm{clip}\big(\mathrm{med}({\color{#2F74D0}V_t}, {\color{#2F74D0}A_t}, B_t),\ M_{t-1}(1\pm 1\%)\big)`$ |
+| **Feed not live** (2) | in closures or a data gap: $`O_t = O_{t-1} + \big(1 - e^{-\Delta t^*/\tau}\big)(\text{mid}_t - O_{t-1})`$ | in closures $`{\color{#2F74D0}\text{or when } E_t = E_{t-1} = E_{t-2}}`$: $`O_t = O_{t-1} + \big(1 - e^{-\Delta t^*/\tau}\big)\,{\color{#2F74D0}\mathrm{clip}\big(\text{mid}_t - O_{t-1},\ \pm\kappa\,O_{t-1}\big)}`$ |
 | **Liquidation size** (3) | below MM, above \$100k: a first 20%, then full size during a 30 s cooldown | below MM, above \$100k, at every update: $`{\color{#2F74D0}\Delta q = \big(1 - \text{equity}/\text{IM}\big)\,\lvert q\rvert}`$ |
 
 Blue: what differs from today, as in the paper; (1) to (3): the change. $`c = 0.5\%`$, today's limit per update; $`k`$: the relayer's read lag; $`\mathcal{D}_t`$: the discovery bound; $`e_t`$: the 150 s average of mid $`-\,E`$; $`H_t`$: the range spanned by $`O_{t-k}(1\pm c)`$ and $`X^2_{t-k}(1\pm c)`$; $`\kappa = 1\%`$; $`\tau = 30`$ min. The correction step of $`A_t`$ and every other rule: [page 3](docs/mark_formulas.pdf#page=3).
