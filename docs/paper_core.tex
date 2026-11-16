@@ -73,7 +73,7 @@ ADL; isolated-only & Profitable traders closed out; a market where the vault can
 \end{itemize}
 
 \vspace{1ex}
-\textbf{How to read the pages that follow.} One page per idea, its title the message; on each change page the Today / Suggested lines give the rule. Charts: today's rules orange, the proposal blue, the vault green, July 27 dark red, the proposal's mark with today's sizing purple; teal and gold where neither rule set is compared, gray only for context. trade.xyz's \emph{relayer} is the program that sends its prices to Hyperliquid. The external price, or \emph{feed}, is \emph{live} while its venue is open and its value changes, \emph{not live} when the venue is closed or the value repeats (\emph{quiet}; \emph{stuck} when frozen on purpose in a test). When it is not live, xyz prices the market from its own book: the \emph{internal price}, which must stay within the \emph{discovery bound}, a band of one over the market's maximum leverage around the last external price. \emph{Money to avoid ADL} keeps the vault's account above zero; \emph{capital the vault needs} keeps it above its maintenance margin. A takeover \emph{below the external price} is already worth less than zero at that price. A \emph{walk} moves the external price away step by step; a \emph{push} is a margined attacker buying or selling on xyz's book to move it, its size being the attacker's capital. A \emph{replay} reruns a recorded day under a given set of rules. Pages: every rule on one page \pageref{sec:formulas}, problems \pageref{sec:adl}--\pageref{sec:lag}, changes \pageref{sec:vote}--\pageref{sec:feed} (the mark first), how they fit \pageref{sec:steps}, tests from \pageref{sec:tests}, costs \pageref{sec:costs}, limits \pageref{sec:limits}. Times UTC; US sessions in ET.
+\textbf{How to read the pages that follow.} One idea per page, its title the message. Charts: today's rules orange, the proposal blue, the vault green. Times UTC. Terms in italics are defined in the glossary (page~\pageref{sec:glossary}).
 
 \textbf{What it costs, in brief} (today first; in full on page~\pageref{sec:costs}). In most tests the vault inherits more; the capital and money to avoid ADL that come with it fall on the three crashes together (\$715k, \$589k; \$462k, \$352k) and rise on Alphabet's (\$329k, \$419k; \$185k, \$219k). When a venue is closed the mark can sit above xyz's book for hours (SK Hynix, July 27: up to 7.03\%). A walked external price with a push on xyz's book does as much harm as today or more (\$15.5M liquidated, \$16.0M). Change 3 needs a Hyperliquid change and alone leaves the vault more (\$8.72M, \$9.32M).
 
@@ -162,10 +162,11 @@ Where did ADL happen on xyz? We read the full record of fills. In 392 days, 475 
 
 68\% of that ADL was on markets where the vault had not yet taken a single position (the first takeover standing in for the switch date, so the share could move). On \emph{isolated-only} markets the vault cannot hold a position, so the backstop is ADL (the first case of page~2). Brent oil (\$33.3M) and crude oil (\$9.9M) had all their ADL before the vault's first takeover there, and none since.
 
-trade.xyz publishes switch dates for five markets (June 24, among them SpaceX, SK Hynix, crude oil and SanDisk). For the rest we read the setting from the vault's first takeover, so on this page ``entered'' means the vault's first takeover on the chain, which can come after the switch. Most of these markets have the vault today. The ones still isolated-only had \$13.45M of ADL (15.8\%), \$9.34M of it on the Brazil fund EWZ; the chart's \$14.3M is slightly larger: it also counts markets where the vault is allowed but has not yet taken a position. Our replays cover \$300k of it and July 27, not Brent, crude oil or EWZ.
+trade.xyz publishes switch dates for five markets only (June 24); elsewhere, ``entered'' on this page means the vault's first takeover on the chain, which can come after the switch. Most of these markets have the vault today. The ones still isolated-only had \$13.45M of ADL (15.8\%), \$9.34M of it on the Brazil fund EWZ; the chart's \$14.3M is slightly larger: it also counts markets where the vault is allowed but has not yet taken a position. Our replays cover \$300k of it and July 27, not Brent, crude oil or EWZ.
 
 \begin{center}\includegraphics[width=\textwidth]{figs/adl_timeline.pdf}\end{center}
-\vspace{-1.5ex}
+\vspace{-2ex}
+{\small\color{mute}Green shading: after the vault's first takeover in that market. Circle colors follow the bar on top.\par}
 
 Most of the rest is one day: SK Hynix on July 27 (\$25.6M, 30\% of the total; the chart's SK Hynix row, \$25.4M, leaves out \$160k on a second SK Hynix market). There the vault was allowed in but its balance was not enough: what we read as a wrong price at the reopening dragged the mark down, and in our replay the vault needed \$1.43M against a balance of about \$1.04M five days earlier (page~\pageref{sec:skhx2}). The remaining \$1.5M is silver on March 5, a day when the vault did take a position and ADL happened all the same.
 
@@ -574,9 +575,8 @@ This page gathers every test where the proposal does worse than today, no better
 
 
 %======================================================================================== 17b limits
-\page{What the study cannot tell: today's rules are reconstructed, the days are few, and the book does not react}{The limits of every result in this paper}\phantomsection\label{sec:limits}
+\page{The limits of every result in this paper}{Limits}\phantomsection\label{sec:limits}
 
-What follows limits every result in this paper: how the replay was built, which days it covers, and what it cannot see.
 \begin{itemize}[leftmargin=1.3em,itemsep=.6ex,topsep=0pt]
 \item \textbf{Today's rules are our reconstruction:} it includes a read lag (the delay with which today's relayer reads the external price, as we reconstruct it) and corrections fitted to the chain record. The proposal is replayed as written, with neither. The read lag delays today's mark, so in fast crashes it favors the proposal; we have not measured by how much.
 \item \textbf{The replay is not exact.} On November 5 it shows a \$510k takeover that never happened on the chain. A gap as small as Amazon's capital need, \$143k today against \$125k under the proposal, should not be read as a gain.

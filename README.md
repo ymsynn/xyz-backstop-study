@@ -1,35 +1,116 @@
 # trade.xyz backstop study
 
 Suggestions for how trade.xyz prices and liquidates positions on Hyperliquid in stressed markets, studied from outside,
-together with the replay engine and data pipeline that produced every number in them.
+with the replay engine and data pipeline behind every number.
+
+## The suggestions in one paragraph
+
+Today the prices trade.xyz publishes follow the external price in steps of 0.5% per update, so in a fast move the mark
+arrives about a minute late, and a single wrong external price moves it on its own. The suggestions aim to reduce
+potential ADL and improve how the backstop vault performs. The main one is for the mark (changes 1 and 2): the mark
+becomes the middle of three votes, the external price, a 30-minute anchor of it, and xyz's own order book; and one
+capped rule prices the market whenever the external price is not live. Both change only what trade.xyz's relayer
+publishes; Hyperliquid's mark formula is unchanged. Four more: a liquidation size that cuts a large position back to
+its initial margin (change 3, a Hyperliquid change), six more markets for the backstop vault (4), a daily floor for
+the vault's capital (5), and three items for the external price (6). *The proposal* means changes 1 to 3, replayed
+together.
+
+## Where each change sits
+
+```mermaid
+%%{init: {"flowchart": {"curve": "basis", "nodeSpacing": 30, "rankSpacing": 38, "padding": 12, "wrappingWidth": 220}}}%%
+flowchart TB
+  BOOK(["xyz's order book"])
+  subgraph XYZ["trade.xyz · prices"]
+    F["6 · External price E<br/>age, sources, minimum size,<br/>cross-check"]
+    IP["2 · Internal price O<br/>when E is not live;<br/>pull to the book capped at 1%"]
+    R["1 · Mark inputs V, A<br/>replace X¹, X²"]
+    F --> R
+    IP --> R
+  end
+  subgraph HL["Hyperliquid"]
+    M["Mark<br/>clip( median( V, A, B ), ±1% )"]
+    L["3 · Liquidation size<br/>cut back to initial margin"]
+    M -->|below MM| L
+  end
+  subgraph VLT["trade.xyz · backstop"]
+    G["4 · Cross margin enabled<br/>22 markets today, six more"]
+    T["Takeover by the vault<br/>at the bankruptcy price"]
+    C5["5 · Capital floor<br/>ten-year level,<br/>every morning"]
+    VA["Vault's account"]
+    G -->|"yes: below ⅔ MM"| T --> VA
+    C5 --> VA
+  end
+  L ~~~ G
+  ADL(["ADL: profitable traders closed out"])
+  subgraph KEY["Legend"]
+    direction LR
+    K1["Changed by the suggestions"]
+    K2["Unchanged"]
+    K1 ~~~ K2
+  end
+  ADL ~~~ KEY
+
+  BOOK --> IP
+  BOOK -->|book price B| M
+  R --> M
+  M --> G
+  G -->|"no, isolated-only:<br/>once equity is below zero"| ADL
+  VA -->|balance not enough| ADL
+
+  classDef same fill:#8c959f14,stroke:#8c959f
+  classDef mod fill:#0969da1f,stroke:#0969da,stroke-width:1.5px
+  class BOOK,M,T,VA,ADL,K2 same
+  class F,IP,R,L,G,C5,K1 mod
+  style XYZ fill:none,stroke:#8c959f66
+  style HL fill:none,stroke:#8c959f66
+  style VLT fill:none,stroke:#8c959f66
+  style KEY fill:none,stroke:none
+```
+
+Each box is a part of the protocol; each arrow is a real input or outcome. Colors as in the paper. A position below its maintenance margin (MM) is sold into xyz's book. On a market with
+cross margin enabled, the vault takes it over below ⅔ MM; on an isolated-only market the book keeps selling and ADL
+comes once its equity is below zero. ADL also comes when the vault's balance is not enough.
+
+| Change | Where it sits | Who would make it | Paper |
+|---|---|---|---|
+| 1 · Mark inputs: the feed's vote V and its 30-minute anchor A replace X¹ and X² | trade.xyz's relayer | trade.xyz | [page 6](docs/mark_formulas.pdf#page=6) |
+| 2 · Internal price when E is not live: pull toward the book capped at 1%, also when E repeats | trade.xyz's relayer | trade.xyz | [page 7](docs/mark_formulas.pdf#page=7) |
+| 3 · Liquidation size: cut back to initial margin at every update | Hyperliquid's liquidation engine | Hyperliquid | [page 8](docs/mark_formulas.pdf#page=8) |
+| 4 · Cross margin enabled on six more markets: Robinhood, MicroStrategy, Nebius, AMD, EWY, Samsung | the market's setting | trade.xyz, reviewed by Hyperliquid's validators | [page 9](docs/mark_formulas.pdf#page=9) |
+| 5 · A floor for the vault's capital, recomputed every morning | the vault's capital | trade.xyz (a suggestion, not a protocol rule) | [page 11](docs/mark_formulas.pdf#page=11) |
+| 6 · External price published with its age and sources; a minimum size overnight; a cross-check | trade.xyz's price pipeline | trade.xyz | [page 12](docs/mark_formulas.pdf#page=12) |
+
+Changes 1 and 2 go together, 3 after them, 4 with the capital it needs, 5 and 6 at any time ([page 13](docs/mark_formulas.pdf#page=13)).
+
+## What changes in the formulas
+
+| | Today | Suggested |
+|---|---|---|
+| **Oracle**, feed live (1) | $`O_t = \mathcal{D}_t\big(\operatorname{clip}(E_t,\ O_{t-k}(1\pm c))\big)`$ | $`O_t = {\color{#2F74D0}\mathcal{D}_t(E_t)}`$ |
+| **First input** (1) | $`X^1_t = \mathcal{D}_t\big(\operatorname{clip}(O_t,\ M_{t-1}(1\pm c))\big)`$ | $`X^1_t = {\color{#2F74D0}V_t}`$, with $`{\color{#2F74D0}V_t = E_t}`$ if the feed is live, else $`{\color{#2F74D0}O_t}`$ |
+| **Second input** (1) | $`X^2_t = \mathcal{D}_t\big(\operatorname{clip}(E_t + e_t,\ H_t)\big)`$ | $`X^2_t = {\color{#2F74D0}A_t}`$, from $`{\color{#2F74D0}\tilde A_t = A_{t-1} + \big(1 - e^{-\Delta t/\tau}\big)(V_t - A_{t-1})}`$, then a correction step |
+| **Mark** (Hyperliquid) | $`M_t = \operatorname{clip}\big(\operatorname{med}(X^1_t, X^2_t, B_t),\ M_{t-1}(1\pm 1\%)\big)`$ | $`M_t = \operatorname{clip}\big(\operatorname{med}({\color{#2F74D0}V_t}, {\color{#2F74D0}A_t}, B_t),\ M_{t-1}(1\pm 1\%)\big)`$ |
+| **Feed not live** (2) | in closures or a data gap: $`O_t = O_{t-1} + \big(1 - e^{-\Delta t^*/\tau}\big)(\text{mid}_t - O_{t-1})`$ | in closures $`{\color{#2F74D0}\text{or when } E_t = E_{t-1} = E_{t-2}}`$: $`O_t = O_{t-1} + \big(1 - e^{-\Delta t^*/\tau}\big)\,{\color{#2F74D0}\operatorname{clip}\big(\text{mid}_t - O_{t-1},\ \pm\kappa\,O_{t-1}\big)}`$ |
+| **Liquidation size** (3) | below MM, above \$100k: a first 20%, then full size during a 30 s cooldown | below MM, above \$100k, at every update: $`{\color{#2F74D0}\Delta q = \big(1 - \text{equity}/\text{IM}\big)\,\lvert q\rvert}`$ |
+
+Blue: what differs from today, as in the paper; (1) to (3): the change. $`c = 0.5\%`$, today's limit per update; $`k`$: the relayer's read lag; $`\mathcal{D}_t`$: the discovery bound; $`e_t`$: the 150 s average of mid $`-\,E`$; $`H_t`$: the range spanned by $`O_{t-k}(1\pm c)`$ and $`X^2_{t-k}(1\pm c)`$; $`\kappa = 1\%`$; $`\tau = 30`$ min. The correction step of $`A_t`$ and every other rule: [page 3](docs/mark_formulas.pdf#page=3).
 
 **[Rule explorer](https://ymsynn.github.io/xyz-backstop-study/)**: recorded market days replayed under today's rules
 and the suggested ones, on the same charts. Pick a test, change a part of the formulas and compare, in the browser.
 
 | Document | What it is |
 |---|---|
-| [docs/mark_formulas.pdf](docs/mark_formulas.pdf) | The paper: six suggestions, the tests, what they cost and what the study cannot tell (30 pages). Every rule, today's and the suggested one, is side by side on page 13. |
-| [docs/variant_history.pdf](docs/variant_history.pdf) | A companion note: the variants tried before the proposal and why each was not kept. The paper does not depend on it. |
-| [docs/formulas_now_vs_proposal.pdf](docs/formulas_now_vs_proposal.pdf) | One page: today's formulas and the suggested ones side by side, with every changed term highlighted. |
-| [docs/spec/proposal_spec.md](docs/spec/proposal_spec.md) | The specification of the two values the relayer would publish, with a reference implementation and a test vector. |
+| [docs/mark_formulas.pdf](docs/mark_formulas.pdf) | The paper: six suggestions, the tests, their costs and limits (31 pages). Every rule, today's and the suggested one, side by side on page 3. |
+| [docs/variant_history.pdf](docs/variant_history.pdf) | Companion note: the variants tried before the proposal and why each was dropped. The paper does not depend on it. |
+| [docs/formulas_now_vs_proposal.pdf](docs/formulas_now_vs_proposal.pdf) | One page: today's formulas and the suggested ones, every changed term highlighted. |
+| [docs/spec/proposal_spec.md](docs/spec/proposal_spec.md) | Specification of the two values the relayer would publish, with a reference implementation and a test vector. |
 | [docs/results/](docs/results/) | The result tables behind the paper, one file per test. |
-
-## The suggestions in one paragraph
-
-Today the prices trade.xyz publishes follow the external price in steps of 0.5% per update, so in a fast move the mark
-arrives about a minute late, and a single wrong external price moves it on its own. The main suggestion is for the
-mark (changes 1 and 2): the mark becomes the middle of three votes, the external price, a 30-minute anchor of it, and
-xyz's own order book; and one capped rule prices the market whenever the external price is not live. Both are changes
-to what trade.xyz's relayer publishes; Hyperliquid's own mark formula is unchanged. Four further suggestions have less
-evidence behind them: a liquidation size that cuts a large position back to its initial margin (change 3, a Hyperliquid
-change), a candidate list of six more markets for the backstop vault (4), a daily floor for the vault's capital (5),
-and three items for the external price (6). In the paper, *the proposal* means changes 1 to 3, which were replayed
-together.
 
 ## Results
 
-Replayed on about 85 recorded market-days, under today's rules and under the proposal, with one build of the engine.
-Today's figure comes first. The full table is in [docs/results/scorecard.md](docs/results/scorecard.md).
+About 85 recorded market-days, replayed under today's rules and the proposal. Today's figure first. Full table:
+[docs/results/scorecard.md](docs/results/scorecard.md).
 
 | Test | Today | Proposal |
 |---|---|---|
@@ -46,8 +127,8 @@ Today's figure comes first. The full table is in [docs/results/scorecard.md](doc
 
 ## What it costs
 
-The paper lists every case where the proposal does worse than today, does no better, or was not tested (page 21), and
-the limits of the study (page 22). The main ones:
+Every case where the proposal does worse than today, no better, or was not tested: page 21; limits: page 22. The main
+ones:
 
 - **In most tests the vault inherits more than today** (Alphabet's crash: $6.96M today, $10.28M). It inherits less on
   Intel, on Amazon within the replay's error, and on the two oil markets of September 10.
@@ -78,21 +159,34 @@ the limits of the study (page 22). The main ones:
 
 ## Reproducing the results
 
-[REPRODUCE.md](REPRODUCE.md) has the data to get, where it lives, where to put it and the commands, written so that a
-person or an automated agent can follow it top to bottom. In short:
+[REPRODUCE.md](REPRODUCE.md):
+
+```mermaid
+%%{init: {"flowchart": {"curve": "basis", "nodeSpacing": 30, "rankSpacing": 56, "padding": 18, "useMaxWidth": false}}}%%
+flowchart LR
+  RAW([Raw archives]) -- 1 --> D[Market-days]
+  D -- 2 --> R[Replays]
+  R -- 3 --> S([Scorecard])
+  R -.-> X([Rule explorer])
+
+  classDef src fill:#8c959f14,stroke:#8c959f
+  classDef out fill:#0969da1f,stroke:#0969da,stroke-width:1.5px
+  class RAW,D,R src
+  class S,X out
+```
 
 1. Build the market-days from the two raw archives with the jobs in `ec2/` (a few hours, about $10 of AWS).
 2. Fetch the rebuilt market-days and run `zsh sim/final/run_final.sh` (about an hour and a half on eight cores).
 3. Score with `python sim/final/score_final.py` and compare with `docs/results/scorecard.md`.
 4. Run the tests added after the final run (section 5 of REPRODUCE.md).
 
-The pipeline is deterministic: the same inputs give byte-identical market-days whatever the number of processor
-threads, and `tools/determinism_check.sh` verifies it.
+The pipeline is deterministic: the same inputs give byte-identical market-days on any number of threads
+(`tools/determinism_check.sh`).
 
 ## Checking the suggested mark without the engine
 
-`docs/spec/three_vote_reference.py` is a short implementation of the two published values in plain Python, with no
-dependency. It reproduces the engine's output on every one of the 29,010 updates of SK Hynix, July 27:
+`docs/spec/three_vote_reference.py`, plain Python with no dependency, reproduces the engine's two published values on
+all 29,010 updates of SK Hynix, July 27:
 
 ```bash
 python3 docs/spec/three_vote_reference.py
