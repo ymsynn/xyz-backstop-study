@@ -3,6 +3,9 @@
 Suggestions for how trade.xyz prices and liquidates positions on Hyperliquid in stressed markets, studied from outside,
 with the replay engine and data pipeline behind every number.
 
+**[Open the rule explorer](https://ymsynn.github.io/xyz-backstop-study/)**: recorded market days replayed under today's
+rules and the suggested ones, in the browser.
+
 ## The suggestions in one paragraph
 
 Today the prices trade.xyz publishes follow the external price in steps of 0.5% per update, so in a fast move the mark
