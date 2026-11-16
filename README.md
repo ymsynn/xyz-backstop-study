@@ -161,20 +161,6 @@ ones:
 
 [REPRODUCE.md](REPRODUCE.md):
 
-```mermaid
-%%{init: {"flowchart": {"curve": "basis", "nodeSpacing": 30, "rankSpacing": 56, "padding": 18, "useMaxWidth": false}}}%%
-flowchart LR
-  RAW([Raw archives]) -- 1 --> D[Market-days]
-  D -- 2 --> R[Replays]
-  R -- 3 --> S([Scorecard])
-  R -.-> X([Rule explorer])
-
-  classDef src fill:#8c959f14,stroke:#8c959f
-  classDef out fill:#0969da1f,stroke:#0969da,stroke-width:1.5px
-  class RAW,D,R src
-  class S,X out
-```
-
 1. Build the market-days from the two raw archives with the jobs in `ec2/` (a few hours, about $10 of AWS).
 2. Fetch the rebuilt market-days and run `zsh sim/final/run_final.sh` (about an hour and a half on eight cores).
 3. Score with `python sim/final/score_final.py` and compare with `docs/results/scorecard.md`.
